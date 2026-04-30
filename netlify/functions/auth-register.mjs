@@ -1,4 +1,4 @@
-import { createUser, errorResponse, issueToken, jsonResponse, readJsonBody } from './auth-shared.mjs';
+import { createSessionForUsername, createUser, errorResponse, jsonResponse, readJsonBody } from './auth-shared.mjs';
 
 export default async (request) => {
   if (request.method !== 'POST') {
@@ -8,9 +8,9 @@ export default async (request) => {
   try {
     const body = await readJsonBody(request);
     const user = await createUser(body);
-    const token = issueToken(user);
+    const session = await createSessionForUsername(user.username);
 
-    return jsonResponse({ user, token }, 201);
+    return jsonResponse(session, 201);
   } catch (error) {
     return errorResponse(error);
   }

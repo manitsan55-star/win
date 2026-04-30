@@ -5,7 +5,14 @@
     </div>
     <div v-if="username" class="user-info">
       <router-link v-if="isAdminUser" to="/admin" class="admin-link">จัดการผู้ใช้</router-link>
-      <span class="username">{{ username }}</span>
+      <div class="user-meta">
+        <span class="username">{{ username }}</span>
+        <span v-if="expireDateText" class="expire-text">
+          หมดอายุ: {{ expireDateText }}
+          <span v-if="expireRemainingText">({{ expireRemainingText }})</span>
+        </span>
+        <span v-if="accessStatusText" :class="statusClass">{{ accessStatusText }}</span>
+      </div>
       <button @click="logout" class="logout-button">ออกจากระบบ</button>
     </div>
     <div v-else>
@@ -15,7 +22,7 @@
 </template>
 
 <script>
-import { getCurrentUser, logoutUser } from '@/utils/auth';
+import { formatExpireDate, getCurrentUser, getUserAccessState, logoutUser } from '@/utils/auth';
 
 export default {
   name: "NavbarComponent",
@@ -24,6 +31,10 @@ export default {
     return {
       username: null,
       isAdminUser: false,
+      expireDateText: '',
+      expireRemainingText: '',
+      accessStatusText: '',
+      accessStatusClass: '',
     };
   },
   created() {
@@ -38,12 +49,36 @@ export default {
       const user = getCurrentUser();
       this.username = user ? user.username : null;
       this.isAdminUser = user?.role === 'admin';
+
+      const accessState = getUserAccessState(user);
+      this.expireDateText = formatExpireDate(user?.expire_date);
+      this.expireRemainingText = accessState.expireRemainingText;
+
+      if (accessState.locked) {
+        this.accessStatusText = 'สถานะ: ถูกล็อก';
+        this.accessStatusClass = 'status-locked';
+      } else if (accessState.expired) {
+        this.accessStatusText = 'สถานะ: หมดอายุ';
+        this.accessStatusClass = 'status-expired';
+      } else {
+        this.accessStatusText = '';
+        this.accessStatusClass = '';
+      }
     },
     logout() {
       logoutUser();
       this.username = null;
       this.isAdminUser = false;
+      this.expireDateText = '';
+      this.expireRemainingText = '';
+      this.accessStatusText = '';
+      this.accessStatusClass = '';
       this.$router.push('/');
+    }
+  },
+  computed: {
+    statusClass() {
+      return ['access-status', this.accessStatusClass];
     }
   }
 };
@@ -75,10 +110,35 @@ export default {
 .user-info {
   display: flex;
   align-items: center;
+  gap: 1rem;
+}
+
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .username {
-  margin-right: 1em;
+  font-weight: 600;
+}
+
+.expire-text {
+  font-size: 0.8rem;
+  color: #d1d5db;
+}
+
+.access-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-locked {
+  color: #fca5a5;
+}
+
+.status-expired {
+  color: #fde68a;
 }
 
 .admin-link {
@@ -130,6 +190,11 @@ export default {
   .user-info {
     margin-top: 0.5em;
     flex-direction: column;
+  }
+
+  .user-meta {
+    align-items: center;
+    margin-bottom: 0.5rem;
   }
 }
 </style>

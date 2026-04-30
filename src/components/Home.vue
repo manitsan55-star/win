@@ -2,6 +2,10 @@
   <MainNavbar @open-auth-modal="openAuthModal" />
   <div :class="BoxClass">
     <div>
+      <div v-if="accessNotice" class="access-banner">
+        {{ accessNotice }}
+      </div>
+
       <textarea 
         ref="textarea"
         v-model="inputNumbers" 
@@ -14,7 +18,7 @@
         <button @click="resetAll" class="reset-button">
           เริ่มใหม่
         </button>
-        <button @click="submitData" class="submit-button">
+        <button @click="submitData" class="submit-button" :disabled="isCalculationBlocked">
           คำนวณ
         </button>
       </div>
@@ -278,7 +282,7 @@
 <script>
 import AuthModal from '@/components/AuthModal.vue';
 import MainNavbar from '@/components/MainNavbar.vue';
-import { isAuthenticated } from '@/utils/auth';
+import { consumeAuthNotice, getCurrentUser, getUserAccessState, isAuthenticated } from '@/utils/auth';
 
 export default {
   components: {
@@ -302,7 +306,15 @@ export default {
       showAuthModal: false,
       authModalMode: 'login',
       pendingCalculation: false,
+      accessNotice: '',
     };
+  },
+  created() {
+    this.syncAccessNotice();
+    window.addEventListener('auth-changed', this.handleAuthChanged);
+  },
+  beforeUnmount() {
+    window.removeEventListener('auth-changed', this.handleAuthChanged);
   },
   computed: {
     textAreaClass() {
@@ -316,9 +328,30 @@ export default {
     },
     summaryClass() {
       return this.isMultiline ? 'summary-container-multiline' : 'summary-container';
+    },
+    accessState() {
+      return getUserAccessState(getCurrentUser());
+    },
+    isCalculationBlocked() {
+      return isAuthenticated() && this.accessState.blocked;
     }
   },
   methods: {
+    handleAuthChanged() {
+      this.syncAccessNotice();
+    },
+    syncAccessNotice() {
+      const consumedNotice = consumeAuthNotice();
+
+      if (consumedNotice) {
+        this.accessNotice = consumedNotice;
+        return;
+      }
+
+      const user = getCurrentUser();
+      const accessState = getUserAccessState(user);
+      this.accessNotice = accessState.message;
+    },
     updateSummary() {
       this.lines = this.inputNumbers.split('\n')
       // console.log(this.inputNumbers)
@@ -580,6 +613,13 @@ export default {
         return;
       }
 
+      this.syncAccessNotice();
+
+      if (this.accessState.blocked) {
+        this.pendingCalculation = false;
+        return;
+      }
+
       await this.countWin()
       this.updateSummary()
     },
@@ -593,6 +633,7 @@ export default {
     },
     async handleAuthSuccess() {
       this.showAuthModal = false;
+      this.syncAccessNotice();
 
       if (this.pendingCalculation) {
         this.pendingCalculation = false;
@@ -791,6 +832,15 @@ export default {
   z-index: 1000;
 }
 
+.access-banner {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 8px;
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
 .checkbox-group {
   display: flex;
   align-items: center;
@@ -886,6 +936,11 @@ h3 {
 
 .submit-button:hover {
   background-color: #2f855a;
+}
+
+.submit-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
 }
 
 .full-screen {

@@ -1,5 +1,6 @@
 const CURRENT_USER_KEY = 'vin-number-current-user';
 const AUTH_TOKEN_KEY = 'vin-number-auth-token';
+const AUTH_NOTICE_KEY = 'vin-number-auth-notice';
 const AUTH_API_BASE = '/api/auth';
 
 function parseJson(value, fallback) {
@@ -39,8 +40,17 @@ function saveSession({ user, token }) {
   localStorage.setItem(AUTH_TOKEN_KEY, token);
 }
 
-function emitAuthChanged() {
-  window.dispatchEvent(new Event('auth-changed'));
+function setAuthNotice(message) {
+  if (!message) {
+    sessionStorage.removeItem(AUTH_NOTICE_KEY);
+    return;
+  }
+
+  sessionStorage.setItem(AUTH_NOTICE_KEY, message);
+}
+
+function emitAuthChanged(detail = {}) {
+  window.dispatchEvent(new CustomEvent('auth-changed', { detail }));
 }
 
 export async function registerUser({ username, password, confirmPassword }) {
@@ -50,6 +60,7 @@ export async function registerUser({ username, password, confirmPassword }) {
     confirmPassword,
   });
 
+  setAuthNotice('');
   saveSession(data);
   emitAuthChanged();
 
@@ -62,6 +73,7 @@ export async function loginUser({ username, password }) {
     password,
   });
 
+  setAuthNotice('');
   saveSession(data);
   emitAuthChanged();
 
@@ -71,6 +83,82 @@ export async function loginUser({ username, password }) {
 export function getCurrentUser() {
   const storedCurrentUser = localStorage.getItem(CURRENT_USER_KEY);
   return storedCurrentUser ? parseJson(storedCurrentUser, null) : null;
+}
+
+export function consumeAuthNotice() {
+  const notice = sessionStorage.getItem(AUTH_NOTICE_KEY);
+  sessionStorage.removeItem(AUTH_NOTICE_KEY);
+  return notice;
+}
+
+export function isUserLocked(user = getCurrentUser()) {
+  return Boolean(user?.locked);
+}
+
+export function isUserExpired(user = getCurrentUser()) {
+  if (!user?.expire_date) {
+    return false;
+  }
+
+  const expireDate = new Date(user.expire_date);
+  return !Number.isNaN(expireDate.getTime()) && expireDate.getTime() <= Date.now();
+}
+
+export function formatExpireDate(value) {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date.toLocaleString();
+}
+
+export function getExpireRemainingText(user = getCurrentUser()) {
+  if (!user?.expire_date) {
+    return '';
+  }
+
+  const expireDate = new Date(user.expire_date);
+
+  if (Number.isNaN(expireDate.getTime())) {
+    return '';
+  }
+
+  const diff = expireDate.getTime() - Date.now();
+
+  if (diff <= 0) {
+    return 'หมดอายุแล้ว';
+  }
+
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return `เหลือ ${days} วัน`;
+}
+
+export function getUserAccessState(user = getCurrentUser()) {
+  const locked = isUserLocked(user);
+  const expired = isUserExpired(user);
+
+  let message = '';
+
+  if (locked) {
+    message = 'บัญชีของคุณถูกล็อก จึงยังไม่สามารถคำนวณได้';
+  } else if (expired) {
+    message = 'บัญชีของคุณหมดอายุแล้ว จึงยังไม่สามารถคำนวณได้';
+  }
+
+  return {
+    locked,
+    expired,
+    blocked: locked || expired,
+    message,
+    expireDateText: formatExpireDate(user?.expire_date),
+    expireRemainingText: getExpireRemainingText(user),
+  };
 }
 
 export function getAuthToken() {
@@ -96,18 +184,24 @@ export async function restoreSession() {
   try {
     const data = await requestAuth('/me', null, token);
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(data.user));
+    setAuthNotice('');
     emitAuthChanged();
     return data.user;
   } catch (error) {
-    logoutUser();
+    setAuthNotice(error.message);
+    logoutUser({ preserveNotice: true });
     throw error;
   }
 }
 
-export function logoutUser() {
+export function logoutUser(options = {}) {
+  if (!options.preserveNotice) {
+    setAuthNotice('');
+  }
+
   localStorage.removeItem(CURRENT_USER_KEY);
   localStorage.removeItem(AUTH_TOKEN_KEY);
-  emitAuthChanged();
+  emitAuthChanged({ reason: options.reason || null });
 }
 
 async function requestAdmin(path = '', options = {}) {

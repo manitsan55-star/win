@@ -71,6 +71,7 @@ function hydrateUser(user) {
     role: AVAILABLE_ROLES.includes(user.role) ? user.role : 'user',
     locked: Boolean(user.locked),
     expire_date: normalizeExpireDate(user.expire_date),
+    currentSessionId: typeof user.currentSessionId === 'string' ? user.currentSessionId : null,
   };
 }
 
@@ -84,6 +85,10 @@ function isUserExpired(user) {
 
 function isActiveAdmin(user) {
   return user?.role === 'admin' && !user.locked && !isUserExpired(user);
+}
+
+function createSessionId() {
+  return crypto.randomUUID();
 }
 
 export async function findUserByUsername(username) {
@@ -244,7 +249,7 @@ export async function createUser({ username, password, confirmPassword }) {
   return sanitizeUser(persistedUser);
 }
 
-export async function authenticateUser({ username, password }) {
+async function verifyUserCredentials({ username, password }) {
   await ensureSeedAdmin();
 
   const trimmedUsername = String(username || '').trim();
@@ -267,7 +272,42 @@ export async function authenticateUser({ username, password }) {
 
   assertUserCanAccess(user);
 
+  return user;
+}
+
+export async function authenticateUser({ username, password }) {
+  const user = await verifyUserCredentials({ username, password });
   return sanitizeUser(user);
+}
+
+async function startUserSession(user) {
+  const updatedUser = {
+    ...user,
+    currentSessionId: createSessionId(),
+  };
+
+  await saveUser(updatedUser);
+
+  return {
+    user: sanitizeUser(updatedUser),
+    token: issueToken(updatedUser),
+  };
+}
+
+export async function createUserSession({ username, password }) {
+  const user = await verifyUserCredentials({ username, password });
+  return startUserSession(user);
+}
+
+export async function createSessionForUsername(username) {
+  const user = await findUserByUsername(username);
+
+  if (!user) {
+    throw new Error('user_not_found');
+  }
+
+  assertUserCanAccess(user);
+  return startUserSession(user);
 }
 
 export function issueToken(user) {
@@ -276,6 +316,7 @@ export function issueToken(user) {
       sub: user.id,
       username: user.username,
       role: user.role,
+      sessionId: user.currentSessionId,
     },
     getJwtSecret(),
     {
@@ -299,6 +340,10 @@ export async function getUserFromRequest(request) {
 
   if (!user) {
     throw new Error('unauthorized');
+  }
+
+  if (!decoded.sessionId || !user.currentSessionId || decoded.sessionId !== user.currentSessionId) {
+    throw new Error('session_replaced');
   }
 
   assertUserCanAccess(user);
@@ -424,6 +469,10 @@ export function errorResponse(error) {
 
   if (error.message === 'unauthorized') {
     return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+
+  if (error.message === 'session_replaced') {
+    return jsonResponse({ error: 'บัญชีนี้มีการเข้าสู่ระบบจากอุปกรณ์อื่นแล้ว' }, 401);
   }
 
   if (error.message === 'forbidden') {
