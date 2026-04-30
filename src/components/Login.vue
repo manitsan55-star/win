@@ -32,15 +32,20 @@ export default {
   methods: {
     async login() {
       try {
-        const response = await axios.post('http://localhost:3000/login', {
-          username: this.username,
-          password: this.password
-        });
-        localStorage.setItem('token', response.data.token);
-        this.$router.push('/win');
+        const response = await axios.get('/users.json');
+        const users = response.data;
+
+        const user = users.find(u => u.username === this.username && u.password === this.password);
+
+        if (user) {
+          localStorage.setItem('token', user.token);
+          this.$router.push('/win');
+        } else {
+          this.error = 'ข้อมูลการเข้าสู่ระบบไม่ถูกต้อง';
+        }
       } catch (err) {
-        console.log(err)
-        this.error = err.response.data;
+        console.log(err);
+        this.error = 'เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้';
       }
     }
   }

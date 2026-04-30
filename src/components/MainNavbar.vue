@@ -4,34 +4,45 @@
       <span class="logo">WINWAI</span>
     </div>
     <div v-if="username" class="user-info">
+      <router-link v-if="isAdminUser" to="/admin" class="admin-link">จัดการผู้ใช้</router-link>
       <span class="username">{{ username }}</span>
-      <button @click="logout" class="logout-button">Logout</button>
+      <button @click="logout" class="logout-button">ออกจากระบบ</button>
+    </div>
+    <div v-else>
+      <button @click="$emit('open-auth-modal', 'login')" class="login-button">เข้าสู่ระบบ</button>
     </div>
   </nav>
 </template>
 
 <script>
+import { getCurrentUser, logoutUser } from '@/utils/auth';
+
 export default {
   name: "NavbarComponent",
+  emits: ['open-auth-modal'],
   data() {
     return {
-      username: null
+      username: null,
+      isAdminUser: false,
     };
   },
   created() {
     this.loadUser();
+    window.addEventListener('auth-changed', this.loadUser);
+  },
+  beforeUnmount() {
+    window.removeEventListener('auth-changed', this.loadUser);
   },
   methods: {
     loadUser() {
-      const token = localStorage.getItem('token');
-      if (token) {
-        const user = JSON.parse(atob(token.split('.')[1]));
-        this.username = user.username;
-      }
+      const user = getCurrentUser();
+      this.username = user ? user.username : null;
+      this.isAdminUser = user?.role === 'admin';
     },
     logout() {
-      localStorage.removeItem('token');
+      logoutUser();
       this.username = null;
+      this.isAdminUser = false;
       this.$router.push('/');
     }
   }
@@ -70,8 +81,30 @@ export default {
   margin-right: 1em;
 }
 
+.admin-link {
+  color: white;
+  text-decoration: none;
+  margin-right: 1em;
+  background-color: #2563eb;
+  padding: 0.5em 1em;
+  border-radius: 5px;
+}
+
+.admin-link:hover {
+  background-color: #1d4ed8;
+}
+
 .logout-button {
   background-color: #ff4c4c;
+  color: white;
+  border: none;
+  padding: 0.5em 1em;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.login-button {
+  background-color: #007bff;
   color: white;
   border: none;
   padding: 0.5em 1em;

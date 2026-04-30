@@ -1,5 +1,5 @@
 <template>
-  <MainNavbar />
+  <MainNavbar @open-auth-modal="openAuthModal" />
   <div :class="BoxClass">
     <div>
       <textarea 
@@ -266,14 +266,23 @@
       </div>
     </div>
   </div>
+  <AuthModal
+    :open="showAuthModal"
+    :initialMode="authModalMode"
+    @close="closeAuthModal"
+    @auth-success="handleAuthSuccess"
+  />
 </template>
 
 
 <script>
+import AuthModal from '@/components/AuthModal.vue';
 import MainNavbar from '@/components/MainNavbar.vue';
+import { isAuthenticated } from '@/utils/auth';
 
 export default {
   components: {
+    AuthModal,
     MainNavbar
   },
   name: 'HomePage',
@@ -290,6 +299,9 @@ export default {
       onlyDoubles: false,
       lines: [],
       isMultiline: false,
+      showAuthModal: false,
+      authModalMode: 'login',
+      pendingCalculation: false,
     };
   },
   computed: {
@@ -561,8 +573,47 @@ export default {
         'bg-gray-300': !this.selectedNumber.includes(number)
       };
     },
-    submitData() {
+    async submitData() {
+      if (!isAuthenticated()) {
+        this.pendingCalculation = true;
+        this.openAuthModal('login');
+        return;
+      }
+
+      await this.countWin()
       this.updateSummary()
+    },
+    openAuthModal(mode = 'login') {
+      this.authModalMode = mode === 'register' ? 'register' : 'login';
+      this.showAuthModal = true;
+    },
+    closeAuthModal() {
+      this.showAuthModal = false;
+      this.pendingCalculation = false;
+    },
+    async handleAuthSuccess() {
+      this.showAuthModal = false;
+
+      if (this.pendingCalculation) {
+        this.pendingCalculation = false;
+        await this.submitData();
+      }
+    },
+    async countWin() {
+      try {
+        const response = await fetch('/count.json')
+        let data = await response.json()
+
+        data.win += 1
+
+        await fetch('/count.json', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
+      } catch (error) {
+        console.error('Error updating count:', error)
+      }
     }
   }
 }

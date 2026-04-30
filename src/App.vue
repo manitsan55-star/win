@@ -5,9 +5,17 @@
 </template>
 
 <script>
+import { restoreSession } from '@/utils/auth';
 
 export default {
-  name: 'App'
+  name: 'App',
+  async created() {
+    try {
+      await restoreSession();
+    } catch (error) {
+      console.error(error);
+    }
+  }
 }
 </script>
 
