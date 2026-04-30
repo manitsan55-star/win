@@ -47,18 +47,45 @@ function getUserKey(username) {
   return `${USER_KEY_PREFIX}${normalizeUsername(username)}`;
 }
 
+function isValidDateOnlyString(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+function toDateOnlyString(date) {
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+}
+
 function normalizeExpireDate(expireDate) {
   if (expireDate === null || expireDate === undefined || expireDate === '') {
     return null;
   }
 
-  const parsedDate = new Date(expireDate);
+  const value = String(expireDate).trim();
+
+  if (isValidDateOnlyString(value)) {
+    return value;
+  }
+
+  const dateOnlyMatch = value.match(/^(\d{4}-\d{2}-\d{2})/);
+
+  if (dateOnlyMatch && isValidDateOnlyString(dateOnlyMatch[1])) {
+    return dateOnlyMatch[1];
+  }
+
+  const parsedDate = new Date(value);
 
   if (Number.isNaN(parsedDate.getTime())) {
     throw new Error('invalid_expire_date');
   }
 
-  return parsedDate.toISOString();
+  return toDateOnlyString(parsedDate);
 }
 
 function hydrateUser(user) {
@@ -80,7 +107,7 @@ function isUserExpired(user) {
     return false;
   }
 
-  return new Date(user.expire_date).getTime() <= Date.now();
+  return user.expire_date < toDateOnlyString(new Date());
 }
 
 function isActiveAdmin(user) {

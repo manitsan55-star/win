@@ -40,7 +40,7 @@
           </select>
           <input
             v-model="createForm.expire_date"
-            type="datetime-local"
+            type="date"
             class="form-input"
             :disabled="isCreatingUser"
           />
@@ -94,9 +94,9 @@
               </td>
               <td>
                 <input
-                  type="datetime-local"
+                  type="date"
                   class="expire-input"
-                  :value="toDateTimeLocal(user.expire_date)"
+                  :value="toDateInput(user.expire_date)"
                   :disabled="isBusy(user.id) || isCurrentUser(user.id)"
                   @change="changeExpireDate(user, $event.target.value)"
                 />
@@ -186,7 +186,7 @@ export default {
           password: this.createForm.password,
           role: this.createForm.role,
           locked: this.createForm.locked,
-          expire_date: this.createForm.expire_date ? new Date(this.createForm.expire_date).toISOString() : null,
+          expire_date: this.createForm.expire_date || null,
         });
 
         this.users = [...this.users, createdUser].sort((a, b) => a.username.localeCompare(b.username));
@@ -238,7 +238,7 @@ export default {
       try {
         const updatedUser = await updateAdminUserAccess({
           userId: user.id,
-          expire_date: expireDate ? new Date(expireDate).toISOString() : null,
+          expire_date: expireDate || null,
         });
         this.replaceUser(updatedUser);
         this.successMessage = `อัปเดตวันหมดอายุของ ${user.username} แล้ว`;
@@ -302,14 +302,12 @@ export default {
 
       return new Date(value).toLocaleString();
     },
-    toDateTimeLocal(value) {
+    toDateInput(value) {
       if (!value) {
         return '';
       }
 
-      const date = new Date(value);
-      const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-      return offsetDate.toISOString().slice(0, 16);
+      return value;
     }
   }
 };

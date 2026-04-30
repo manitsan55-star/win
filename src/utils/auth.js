@@ -11,6 +11,26 @@ function parseJson(value, fallback) {
   }
 }
 
+function parseDateOnly(value) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null;
+  }
+
+  return date;
+}
+
+function getTodayDateOnly() {
+  const today = new Date();
+  return [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+}
+
 async function requestAuth(path, payload, token) {
   const headers = {
     'Content-Type': 'application/json',
@@ -100,8 +120,7 @@ export function isUserExpired(user = getCurrentUser()) {
     return false;
   }
 
-  const expireDate = new Date(user.expire_date);
-  return !Number.isNaN(expireDate.getTime()) && expireDate.getTime() <= Date.now();
+  return user.expire_date < getTodayDateOnly();
 }
 
 export function formatExpireDate(value) {
@@ -109,13 +128,13 @@ export function formatExpireDate(value) {
     return '';
   }
 
-  const date = new Date(value);
+  const date = parseDateOnly(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (!date) {
     return '';
   }
 
-  return date.toLocaleString();
+  return date.toLocaleDateString();
 }
 
 export function getExpireRemainingText(user = getCurrentUser()) {
@@ -123,19 +142,20 @@ export function getExpireRemainingText(user = getCurrentUser()) {
     return '';
   }
 
-  const expireDate = new Date(user.expire_date);
+  const expireDate = parseDateOnly(user.expire_date);
 
-  if (Number.isNaN(expireDate.getTime())) {
+  if (!expireDate) {
     return '';
   }
 
-  const diff = expireDate.getTime() - Date.now();
+  const today = parseDateOnly(getTodayDateOnly());
+  const diff = expireDate.getTime() - today.getTime();
 
   if (diff <= 0) {
-    return 'หมดอายุแล้ว';
+    return diff === 0 ? 'หมดอายุวันนี้' : 'หมดอายุแล้ว';
   }
 
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  const days = Math.round(diff / (1000 * 60 * 60 * 24));
   return `เหลือ ${days} วัน`;
 }
 
