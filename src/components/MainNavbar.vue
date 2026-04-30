@@ -4,18 +4,23 @@
       <span class="logo">WINWAI</span>
     </div>
     <div v-if="username" class="user-info">
-      <router-link v-if="isAdminUser" to="/admin" class="admin-link">จัดการผู้ใช้</router-link>
-      <div class="user-meta">
-        <span class="username">{{ username }}</span>
-        <div v-if="expireDateText || accessStatusText" class="meta-detail-row">
-          <span v-if="expireDateText" class="expire-text">
-            หมดอายุ: {{ expireDateText }}
-            <span v-if="expireRemainingText">({{ expireRemainingText }})</span>
-          </span>
-          <span v-if="accessStatusText" :class="statusClass">{{ accessStatusText }}</span>
+      <button type="button" class="mobile-user-toggle" @click="toggleMobileDetails">
+        {{ isMobileDetailsOpen ? 'ซ่อนข้อมูล' : 'แสดงข้อมูล' }}
+      </button>
+      <div class="user-panel" :class="{ 'mobile-open': isMobileDetailsOpen }">
+        <router-link v-if="isAdminUser" to="/admin" class="admin-link">จัดการผู้ใช้</router-link>
+        <div class="user-meta">
+          <span class="username">{{ username }}</span>
+          <div v-if="expireDateText || accessStatusText" class="meta-detail-row">
+            <span v-if="expireDateText" class="expire-text">
+              หมดอายุ: {{ expireDateText }}
+              <span v-if="expireRemainingText">({{ expireRemainingText }})</span>
+            </span>
+            <span v-if="accessStatusText" :class="statusClass">{{ accessStatusText }}</span>
+          </div>
         </div>
+        <button @click="logout" class="logout-button">ออกจากระบบ</button>
       </div>
-      <button @click="logout" class="logout-button">ออกจากระบบ</button>
     </div>
     <div v-else>
       <button @click="$emit('open-auth-modal', 'login')" class="login-button">เข้าสู่ระบบ</button>
@@ -37,6 +42,7 @@ export default {
       expireRemainingText: '',
       accessStatusText: '',
       accessStatusClass: '',
+      isMobileDetailsOpen: false,
     };
   },
   created() {
@@ -51,6 +57,7 @@ export default {
       const user = getCurrentUser();
       this.username = user ? user.username : null;
       this.isAdminUser = user?.role === 'admin';
+      this.isMobileDetailsOpen = false;
 
       const accessState = getUserAccessState(user);
       this.expireDateText = formatExpireDate(user?.expire_date);
@@ -75,7 +82,11 @@ export default {
       this.expireRemainingText = '';
       this.accessStatusText = '';
       this.accessStatusClass = '';
+      this.isMobileDetailsOpen = false;
       this.$router.push('/');
+    },
+    toggleMobileDetails() {
+      this.isMobileDetailsOpen = !this.isMobileDetailsOpen;
     }
   },
   computed: {
@@ -110,6 +121,12 @@ export default {
 }
 
 .user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-panel {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -167,6 +184,17 @@ export default {
   background-color: #1d4ed8;
 }
 
+.mobile-user-toggle {
+  display: none;
+  border: none;
+  background-color: #4b5563;
+  color: white;
+  padding: 0.35em 0.75em;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
 .logout-button {
   background-color: #ff4c4c;
   color: white;
@@ -204,11 +232,29 @@ export default {
   .user-info {
     margin-top: 0.5em;
     flex-direction: column;
+    width: 100%;
+  }
+
+  .mobile-user-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .user-panel {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .user-panel.mobile-open {
+    display: flex;
   }
 
   .user-meta {
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
   }
 
   .meta-detail-row {
