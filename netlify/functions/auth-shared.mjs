@@ -263,6 +263,56 @@ export async function createUser({ username, password, confirmPassword }) {
   return sanitizeUser(persistedUser);
 }
 
+export async function createUserByAdmin({ username, password, role, locked, expire_date }) {
+  await ensureSeedAdmin();
+
+  const trimmedUsername = String(username || '').trim();
+  const normalizedUsername = normalizeUsername(trimmedUsername);
+
+  if (!trimmedUsername || !password) {
+    throw new Error('กรุณากรอกข้อมูลให้ครบ');
+  }
+
+  if (role !== undefined && !AVAILABLE_ROLES.includes(role)) {
+    throw new Error('invalid_role');
+  }
+
+  if (locked !== undefined && typeof locked !== 'boolean') {
+    throw new Error('invalid_locked');
+  }
+
+  const existingUser = await findUserByUsername(trimmedUsername);
+
+  if (existingUser) {
+    throw new Error('username นี้ถูกใช้งานแล้ว');
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const user = {
+    id: crypto.randomUUID(),
+    username: trimmedUsername,
+    normalizedUsername,
+    passwordHash,
+    role: role || 'user',
+    locked: locked ?? false,
+    expire_date: normalizeExpireDate(expire_date),
+    createdAt: new Date().toISOString(),
+    currentSessionId: null,
+  };
+
+  const result = await getStoreInstance().setJSON(getUserKey(trimmedUsername), user, {
+    onlyIfNew: true,
+  });
+
+  if (result && result.modified === false) {
+    throw new Error('username นี้ถูกใช้งานแล้ว');
+  }
+
+  const persistedUser = (await waitForUserPersistence(trimmedUsername)) || user;
+
+  return sanitizeUser(persistedUser);
+}
+
 async function verifyUserCredentials({ username, password }) {
   await ensureSeedAdmin();
 

@@ -16,6 +16,44 @@
       <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
       <div v-if="successMessage" class="success-banner">{{ successMessage }}</div>
 
+      <div class="create-user-card">
+        <h3>เพิ่มผู้ใช้</h3>
+        <div class="create-user-grid">
+          <input
+            v-model.trim="createForm.username"
+            type="text"
+            class="form-input"
+            placeholder="Username"
+            :disabled="isCreatingUser"
+          />
+          <input
+            v-model="createForm.password"
+            type="password"
+            class="form-input"
+            placeholder="Password"
+            :disabled="isCreatingUser"
+          />
+          <select v-model="createForm.role" class="form-input" :disabled="isCreatingUser">
+            <option value="user">user</option>
+            <option value="vip">vip</option>
+            <option value="admin">admin</option>
+          </select>
+          <input
+            v-model="createForm.expire_date"
+            type="datetime-local"
+            class="form-input"
+            :disabled="isCreatingUser"
+          />
+          <label class="lock-toggle create-lock-toggle">
+            <input v-model="createForm.locked" type="checkbox" :disabled="isCreatingUser" />
+            <span>สร้างเป็น locked</span>
+          </label>
+          <button @click="createUser" class="create-button" :disabled="isCreatingUser">
+            {{ isCreatingUser ? 'กำลังสร้าง...' : 'เพิ่ม user' }}
+          </button>
+        </div>
+      </div>
+
       <div v-if="users.length > 0" class="user-list">
         <table>
           <thead>
@@ -94,7 +132,7 @@
 
 <script>
 import MainNavbar from './MainNavbar.vue';
-import { deleteAdminUser, fetchAdminUsers, getCurrentUser, updateAdminUserAccess } from '@/utils/auth';
+import { createAdminUser, deleteAdminUser, fetchAdminUsers, getCurrentUser, updateAdminUserAccess } from '@/utils/auth';
 
 export default {
   name: 'AdminPage',
@@ -109,6 +147,14 @@ export default {
       errorMessage: '',
       successMessage: '',
       currentUserId: null,
+      isCreatingUser: false,
+      createForm: {
+        username: '',
+        password: '',
+        role: 'user',
+        locked: false,
+        expire_date: '',
+      },
     };
   },
   created() {
@@ -127,6 +173,29 @@ export default {
         this.errorMessage = err.message || 'ไม่สามารถโหลดผู้ใช้ได้';
       } finally {
         this.isLoading = false;
+      }
+    },
+    async createUser() {
+      this.isCreatingUser = true;
+      this.errorMessage = '';
+      this.successMessage = '';
+
+      try {
+        const createdUser = await createAdminUser({
+          username: this.createForm.username,
+          password: this.createForm.password,
+          role: this.createForm.role,
+          locked: this.createForm.locked,
+          expire_date: this.createForm.expire_date ? new Date(this.createForm.expire_date).toISOString() : null,
+        });
+
+        this.users = [...this.users, createdUser].sort((a, b) => a.username.localeCompare(b.username));
+        this.successMessage = `เพิ่มผู้ใช้ ${createdUser.username} แล้ว`;
+        this.resetCreateForm();
+      } catch (err) {
+        this.errorMessage = err.message || 'ไม่สามารถเพิ่มผู้ใช้ได้';
+      } finally {
+        this.isCreatingUser = false;
       }
     },
     async changeRole(user, role) {
@@ -212,6 +281,15 @@ export default {
     isCurrentUser(userId) {
       return this.currentUserId === userId;
     },
+    resetCreateForm() {
+      this.createForm = {
+        username: '',
+        password: '',
+        role: 'user',
+        locked: false,
+        expire_date: '',
+      };
+    },
     replaceUser(updatedUser) {
       this.users = this.users.map((item) =>
         item.id === updatedUser.id ? updatedUser : item
@@ -275,6 +353,42 @@ h2 {
 .refresh-button {
   border: none;
   background-color: #2563eb;
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.create-user-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.create-user-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.form-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+}
+
+.create-lock-toggle {
+  min-height: 42px;
+}
+
+.create-button {
+  border: none;
+  background-color: #059669;
   color: white;
   padding: 0.75rem 1rem;
   border-radius: 6px;
@@ -380,6 +494,8 @@ th {
 
 .delete-button:disabled,
 .refresh-button:disabled,
+.create-button:disabled,
+.form-input:disabled,
 .role-select:disabled,
 .expire-input:disabled,
 .clear-button:disabled {

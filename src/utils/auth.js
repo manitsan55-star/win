@@ -234,6 +234,15 @@ export async function fetchAdminUsers() {
   return data.users || [];
 }
 
+export async function createAdminUser({ username, password, role, locked, expire_date }) {
+  const data = await requestAdmin('', {
+    method: 'POST',
+    body: JSON.stringify({ username, password, role, locked, expire_date }),
+  });
+
+  return data.user;
+}
+
 export async function updateAdminUserAccess({ userId, role, locked, expire_date }) {
   const data = await requestAdmin('', {
     method: 'PATCH',

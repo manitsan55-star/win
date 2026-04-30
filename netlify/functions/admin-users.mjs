@@ -1,4 +1,5 @@
 import {
+  createUserByAdmin,
   deleteUserById,
   errorResponse,
   jsonResponse,
@@ -16,6 +17,19 @@ export default async (request) => {
     if (request.method === 'GET') {
       const users = await listUsers();
       return jsonResponse({ users: sanitizeUsers(users) });
+    }
+
+    if (request.method === 'POST') {
+      const body = await readJsonBody(request);
+      const user = await createUserByAdmin({
+        username: body.username,
+        password: body.password,
+        role: body.role,
+        locked: body.locked,
+        expire_date: body.expire_date,
+      });
+
+      return jsonResponse({ user }, 201);
     }
 
     if (request.method === 'PATCH') {

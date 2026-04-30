@@ -7,11 +7,13 @@
       <router-link v-if="isAdminUser" to="/admin" class="admin-link">จัดการผู้ใช้</router-link>
       <div class="user-meta">
         <span class="username">{{ username }}</span>
-        <span v-if="expireDateText" class="expire-text">
-          หมดอายุ: {{ expireDateText }}
-          <span v-if="expireRemainingText">({{ expireRemainingText }})</span>
-        </span>
-        <span v-if="accessStatusText" :class="statusClass">{{ accessStatusText }}</span>
+        <div v-if="expireDateText || accessStatusText" class="meta-detail-row">
+          <span v-if="expireDateText" class="expire-text">
+            หมดอายุ: {{ expireDateText }}
+            <span v-if="expireRemainingText">({{ expireRemainingText }})</span>
+          </span>
+          <span v-if="accessStatusText" :class="statusClass">{{ accessStatusText }}</span>
+        </div>
       </div>
       <button @click="logout" class="logout-button">ออกจากระบบ</button>
     </div>
@@ -88,7 +90,7 @@ export default {
 .navbar {
   background-color: #333;
   color: white;
-  padding: 0.5em 1em;
+  padding: 0.35em 1em;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -110,26 +112,37 @@ export default {
 .user-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .user-meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  gap: 0.1rem;
+  line-height: 1.1;
 }
 
 .username {
   font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.meta-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .expire-text {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   color: #d1d5db;
 }
 
 .access-status {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 600;
 }
 
@@ -144,10 +157,10 @@ export default {
 .admin-link {
   color: white;
   text-decoration: none;
-  margin-right: 1em;
   background-color: #2563eb;
-  padding: 0.5em 1em;
+  padding: 0.4em 0.75em;
   border-radius: 5px;
+  font-size: 0.85rem;
 }
 
 .admin-link:hover {
@@ -158,9 +171,10 @@ export default {
   background-color: #ff4c4c;
   color: white;
   border: none;
-  padding: 0.5em 1em;
+  padding: 0.4em 0.75em;
   cursor: pointer;
   border-radius: 5px;
+  font-size: 0.85rem;
 }
 
 .login-button {
@@ -195,6 +209,10 @@ export default {
   .user-meta {
     align-items: center;
     margin-bottom: 0.5rem;
+  }
+
+  .meta-detail-row {
+    justify-content: center;
   }
 }
 </style>
