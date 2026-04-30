@@ -140,10 +140,10 @@ export async function fetchAdminUsers() {
   return data.users || [];
 }
 
-export async function updateAdminUserRole({ userId, role }) {
+export async function updateAdminUserAccess({ userId, role, locked, expire_date }) {
   const data = await requestAdmin('', {
     method: 'PATCH',
-    body: JSON.stringify({ userId, role }),
+    body: JSON.stringify({ userId, role, locked, expire_date }),
   });
 
   const currentUser = getCurrentUser();

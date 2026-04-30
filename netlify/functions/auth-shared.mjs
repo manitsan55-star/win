@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 const STORE_NAME = 'vin-number-auth';
 const USER_KEY_PREFIX = 'user:';
-const AVAILABLE_ROLES = ['admin', 'user'];
+const AVAILABLE_ROLES = ['admin', 'vip', 'user'];
 
 function getStoreInstance() {
   return getStore(STORE_NAME);
@@ -47,9 +47,49 @@ function getUserKey(username) {
   return `${USER_KEY_PREFIX}${normalizeUsername(username)}`;
 }
 
+function normalizeExpireDate(expireDate) {
+  if (expireDate === null || expireDate === undefined || expireDate === '') {
+    return null;
+  }
+
+  const parsedDate = new Date(expireDate);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw new Error('invalid_expire_date');
+  }
+
+  return parsedDate.toISOString();
+}
+
+function hydrateUser(user) {
+  if (!user) {
+    return null;
+  }
+
+  return {
+    ...user,
+    role: AVAILABLE_ROLES.includes(user.role) ? user.role : 'user',
+    locked: Boolean(user.locked),
+    expire_date: normalizeExpireDate(user.expire_date),
+  };
+}
+
+function isUserExpired(user) {
+  if (!user?.expire_date) {
+    return false;
+  }
+
+  return new Date(user.expire_date).getTime() <= Date.now();
+}
+
+function isActiveAdmin(user) {
+  return user?.role === 'admin' && !user.locked && !isUserExpired(user);
+}
+
 export async function findUserByUsername(username) {
   const key = getUserKey(username);
-  return getStoreInstance().get(key, { type: 'json' });
+  const user = await getStoreInstance().get(key, { type: 'json' });
+  return hydrateUser(user);
 }
 
 export function sanitizeUser(user) {
@@ -57,6 +97,8 @@ export function sanitizeUser(user) {
     id: user.id,
     username: user.username,
     role: user.role,
+    locked: Boolean(user.locked),
+    expire_date: user.expire_date || null,
     createdAt: user.createdAt,
   };
 }
@@ -80,6 +122,16 @@ function getJwtSecret() {
   }
 
   return secret;
+}
+
+function assertUserCanAccess(user) {
+  if (user.locked) {
+    throw new Error('account_locked');
+  }
+
+  if (isUserExpired(user)) {
+    throw new Error('account_expired');
+  }
 }
 
 async function waitForUserPersistence(username, attempts = 5) {
@@ -118,6 +170,8 @@ export async function ensureSeedAdmin() {
       normalizedUsername: normalizeUsername(credentials.username),
       passwordHash: await bcrypt.hash(credentials.password, 10),
       role: 'admin',
+      locked: false,
+      expire_date: null,
     };
 
     await saveUser(updatedUser);
@@ -130,6 +184,8 @@ export async function ensureSeedAdmin() {
     normalizedUsername: normalizeUsername(credentials.username),
     passwordHash: await bcrypt.hash(credentials.password, 10),
     role: 'admin',
+    locked: false,
+    expire_date: null,
     createdAt: new Date().toISOString(),
   };
 
@@ -170,6 +226,8 @@ export async function createUser({ username, password, confirmPassword }) {
     normalizedUsername,
     passwordHash,
     role,
+    locked: false,
+    expire_date: null,
     createdAt: new Date().toISOString(),
   };
 
@@ -207,6 +265,8 @@ export async function authenticateUser({ username, password }) {
     throw new Error('username หรือ password ไม่ถูกต้อง');
   }
 
+  assertUserCanAccess(user);
+
   return sanitizeUser(user);
 }
 
@@ -241,6 +301,8 @@ export async function getUserFromRequest(request) {
     throw new Error('unauthorized');
   }
 
+  assertUserCanAccess(user);
+
   return sanitizeUser(user);
 }
 
@@ -271,37 +333,62 @@ async function findUserById(id) {
 }
 
 async function saveUser(user) {
-  await getStoreInstance().setJSON(getUserKey(user.username), user);
-  return user;
+  const normalizedUser = hydrateUser(user);
+  await getStoreInstance().setJSON(getUserKey(normalizedUser.username), normalizedUser);
+  return normalizedUser;
 }
 
-export async function updateUserRole({ userId, role, actorId }) {
-  if (!AVAILABLE_ROLES.includes(role)) {
-    throw new Error('invalid_role');
+async function ensureRemainingActiveAdmin(currentUser, nextUser) {
+  if (!isActiveAdmin(currentUser) || isActiveAdmin(nextUser)) {
+    return;
   }
 
+  const users = await listUsers();
+  const otherActiveAdmins = users.filter((item) => item.id !== currentUser.id && isActiveAdmin(item)).length;
+
+  if (otherActiveAdmins === 0) {
+    throw new Error('last_admin');
+  }
+}
+
+export async function updateUserAccess({ userId, role, locked, expire_date, actorId }) {
   const user = await findUserById(userId);
 
   if (!user) {
     throw new Error('user_not_found');
   }
 
-  if (user.id === actorId) {
+  if (role !== undefined && !AVAILABLE_ROLES.includes(role)) {
+    throw new Error('invalid_role');
+  }
+
+  if (role !== undefined && user.id === actorId && role !== user.role) {
     throw new Error('cannot_change_own_role');
   }
 
-  if (user.role === 'admin' && role !== 'admin') {
-    const users = await listUsers();
-    const adminCount = users.filter((item) => item.role === 'admin').length;
-
-    if (adminCount <= 1) {
-      throw new Error('last_admin');
-    }
+  if (locked !== undefined && typeof locked !== 'boolean') {
+    throw new Error('invalid_locked');
   }
 
-  user.role = role;
-  await saveUser(user);
-  return sanitizeUser(user);
+  const normalizedExpireDate = expire_date === undefined ? user.expire_date : normalizeExpireDate(expire_date);
+
+  if (
+    user.id === actorId &&
+    ((locked !== undefined && locked !== user.locked) || normalizedExpireDate !== user.expire_date)
+  ) {
+    throw new Error('cannot_update_own_access');
+  }
+
+  const updatedUser = {
+    ...user,
+    role: role ?? user.role,
+    locked: locked ?? user.locked,
+    expire_date: normalizedExpireDate,
+  };
+
+  await ensureRemainingActiveAdmin(user, updatedUser);
+  await saveUser(updatedUser);
+  return sanitizeUser(updatedUser);
 }
 
 export async function deleteUserById({ userId, actorId }) {
@@ -315,14 +402,7 @@ export async function deleteUserById({ userId, actorId }) {
     throw new Error('cannot_delete_self');
   }
 
-  if (user.role === 'admin') {
-    const users = await listUsers();
-    const adminCount = users.filter((item) => item.role === 'admin').length;
-
-    if (adminCount <= 1) {
-      throw new Error('last_admin');
-    }
-  }
+  await ensureRemainingActiveAdmin(user, { ...user, role: 'user', locked: true, expire_date: user.expire_date });
 
   await getStoreInstance().delete(getUserKey(user.username));
 }
@@ -354,6 +434,14 @@ export function errorResponse(error) {
     return jsonResponse({ error: 'Role ไม่ถูกต้อง' }, 400);
   }
 
+  if (error.message === 'invalid_locked') {
+    return jsonResponse({ error: 'ค่า locked ต้องเป็น true หรือ false' }, 400);
+  }
+
+  if (error.message === 'invalid_expire_date') {
+    return jsonResponse({ error: 'ค่า expire_date ไม่ถูกต้อง' }, 400);
+  }
+
   if (error.message === 'user_not_found') {
     return jsonResponse({ error: 'ไม่พบผู้ใช้' }, 404);
   }
@@ -364,6 +452,18 @@ export function errorResponse(error) {
 
   if (error.message === 'cannot_delete_self') {
     return jsonResponse({ error: 'ไม่สามารถลบผู้ใช้ตัวเองได้' }, 400);
+  }
+
+  if (error.message === 'cannot_update_own_access') {
+    return jsonResponse({ error: 'ไม่สามารถแก้ locked หรือ expire_date ของตัวเองได้' }, 400);
+  }
+
+  if (error.message === 'account_locked') {
+    return jsonResponse({ error: 'บัญชีนี้ถูกล็อก' }, 403);
+  }
+
+  if (error.message === 'account_expired') {
+    return jsonResponse({ error: 'บัญชีนี้หมดอายุแล้ว' }, 403);
   }
 
   if (error.message === 'last_admin') {

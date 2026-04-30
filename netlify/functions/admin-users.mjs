@@ -6,7 +6,7 @@ import {
   readJsonBody,
   requireAdmin,
   sanitizeUsers,
-  updateUserRole,
+  updateUserAccess,
 } from './auth-shared.mjs';
 
 export default async (request) => {
@@ -20,9 +20,11 @@ export default async (request) => {
 
     if (request.method === 'PATCH') {
       const body = await readJsonBody(request);
-      const user = await updateUserRole({
+      const user = await updateUserAccess({
         userId: body.userId,
         role: body.role,
+        locked: body.locked,
+        expire_date: body.expire_date,
         actorId: admin.id,
       });
 

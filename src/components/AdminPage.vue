@@ -22,6 +22,8 @@
             <tr>
               <th>Username</th>
               <th>Role</th>
+              <th>Locked</th>
+              <th>Expire Date</th>
               <th>Created</th>
               <th>Actions</th>
             </tr>
@@ -36,9 +38,37 @@
                   :disabled="isBusy(user.id) || isCurrentUser(user.id)"
                   @change="changeRole(user, $event.target.value)"
                 >
+                  <option value="vip">vip</option>
                   <option value="user">user</option>
                   <option value="admin">admin</option>
                 </select>
+              </td>
+              <td>
+                <label class="lock-toggle">
+                  <input
+                    type="checkbox"
+                    :checked="user.locked"
+                    :disabled="isBusy(user.id) || isCurrentUser(user.id)"
+                    @change="changeLocked(user, $event.target.checked)"
+                  />
+                  <span>{{ user.locked ? 'locked' : 'active' }}</span>
+                </label>
+              </td>
+              <td>
+                <input
+                  type="datetime-local"
+                  class="expire-input"
+                  :value="toDateTimeLocal(user.expire_date)"
+                  :disabled="isBusy(user.id) || isCurrentUser(user.id)"
+                  @change="changeExpireDate(user, $event.target.value)"
+                />
+                <button
+                  class="clear-button"
+                  :disabled="isBusy(user.id) || isCurrentUser(user.id) || !user.expire_date"
+                  @click="clearExpireDate(user)"
+                >
+                  ล้าง
+                </button>
               </td>
               <td>{{ formatDate(user.createdAt) }}</td>
               <td>
@@ -64,7 +94,7 @@
 
 <script>
 import MainNavbar from './MainNavbar.vue';
-import { deleteAdminUser, fetchAdminUsers, getCurrentUser, updateAdminUserRole } from '@/utils/auth';
+import { deleteAdminUser, fetchAdminUsers, getCurrentUser, updateAdminUserAccess } from '@/utils/auth';
 
 export default {
   name: 'AdminPage',
@@ -105,10 +135,8 @@ export default {
       this.successMessage = '';
 
       try {
-        await updateAdminUserRole({ userId: user.id, role });
-        this.users = this.users.map((item) =>
-          item.id === user.id ? { ...item, role } : item
-        );
+        const updatedUser = await updateAdminUserAccess({ userId: user.id, role });
+        this.replaceUser(updatedUser);
         this.successMessage = `อัปเดต role ของ ${user.username} แล้ว`;
       } catch (err) {
         this.errorMessage = err.message || 'ไม่สามารถเปลี่ยน role ได้';
@@ -116,6 +144,44 @@ export default {
       } finally {
         this.setBusy(user.id, false);
       }
+    },
+    async changeLocked(user, locked) {
+      this.setBusy(user.id, true);
+      this.errorMessage = '';
+      this.successMessage = '';
+
+      try {
+        const updatedUser = await updateAdminUserAccess({ userId: user.id, locked });
+        this.replaceUser(updatedUser);
+        this.successMessage = `อัปเดตสถานะของ ${user.username} แล้ว`;
+      } catch (err) {
+        this.errorMessage = err.message || 'ไม่สามารถเปลี่ยนสถานะ locked ได้';
+        await this.loadUsers();
+      } finally {
+        this.setBusy(user.id, false);
+      }
+    },
+    async changeExpireDate(user, expireDate) {
+      this.setBusy(user.id, true);
+      this.errorMessage = '';
+      this.successMessage = '';
+
+      try {
+        const updatedUser = await updateAdminUserAccess({
+          userId: user.id,
+          expire_date: expireDate ? new Date(expireDate).toISOString() : null,
+        });
+        this.replaceUser(updatedUser);
+        this.successMessage = `อัปเดตวันหมดอายุของ ${user.username} แล้ว`;
+      } catch (err) {
+        this.errorMessage = err.message || 'ไม่สามารถอัปเดต expire_date ได้';
+        await this.loadUsers();
+      } finally {
+        this.setBusy(user.id, false);
+      }
+    },
+    clearExpireDate(user) {
+      this.changeExpireDate(user, '');
     },
     async deleteUser(user) {
       this.setBusy(user.id, true);
@@ -146,12 +212,26 @@ export default {
     isCurrentUser(userId) {
       return this.currentUserId === userId;
     },
+    replaceUser(updatedUser) {
+      this.users = this.users.map((item) =>
+        item.id === updatedUser.id ? updatedUser : item
+      );
+    },
     formatDate(value) {
       if (!value) {
         return '-';
       }
 
       return new Date(value).toLocaleString();
+    },
+    toDateTimeLocal(value) {
+      if (!value) {
+        return '';
+      }
+
+      const date = new Date(value);
+      const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return offsetDate.toISOString().slice(0, 16);
     }
   }
 };
@@ -228,6 +308,28 @@ th {
   border: 1px solid #d1d5db;
 }
 
+.lock-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.expire-input {
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  margin-right: 0.5rem;
+}
+
+.clear-button {
+  border: none;
+  background-color: #6b7280;
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 .error-banner,
 .success-banner,
 .empty-state {
@@ -278,7 +380,9 @@ th {
 
 .delete-button:disabled,
 .refresh-button:disabled,
-.role-select:disabled {
+.role-select:disabled,
+.expire-input:disabled,
+.clear-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
