@@ -347,7 +347,7 @@ export async function createUser({ username, password, confirmPassword }) {
 
   const persistedUser = (await waitForUserPersistence(trimmedUsername)) || user;
 
-  return sanitizeUser(persistedUser);
+  return persistedUser;
 }
 
 export async function createUserByAdmin({ username, password, role, locked, new_user, expire_date }) {
