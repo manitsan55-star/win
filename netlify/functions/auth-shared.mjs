@@ -284,8 +284,6 @@ async function verifyUserCredentials({ username, password }) {
     throw new Error('username หรือ password ไม่ถูกต้อง');
   }
 
-  assertUserCanAccess(user);
-
   return user;
 }
 
@@ -365,8 +363,6 @@ export async function getUserFromRequest(request) {
   if (decoded.sessionId !== user.currentSessionId) {
     throw new Error('session_replaced');
   }
-
-  assertUserCanAccess(user);
 
   return sanitizeUser(user);
 }
