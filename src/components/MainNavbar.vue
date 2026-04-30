@@ -55,9 +55,13 @@ export default {
   methods: {
     loadUser() {
       const user = getCurrentUser();
+      const previousUsername = this.username;
       this.username = user ? user.username : null;
       this.isAdminUser = user?.role === 'admin';
-      this.isMobileDetailsOpen = false;
+
+      if (!this.username || (previousUsername && previousUsername !== this.username)) {
+        this.isMobileDetailsOpen = false;
+      }
 
       const accessState = getUserAccessState(user);
       this.expireDateText = formatExpireDate(user?.expire_date);
