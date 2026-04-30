@@ -21,6 +21,9 @@
         <button @click="submitData" class="submit-button" :disabled="isCalculationBlocked">
           คำนวณ
         </button>
+        <button @click="openPaymentModal" class="payment-button">
+          วิธีชำระเงิน
+        </button>
       </div>
     </div>
     <div :class="containerClass">
@@ -276,18 +279,26 @@
     @close="closeAuthModal"
     @auth-success="handleAuthSuccess"
   />
+  <PaymentMethodModal
+    :open="showPaymentModal"
+    :settings="paymentSettings"
+    @close="closePaymentModal"
+  />
 </template>
 
 
 <script>
 import AuthModal from '@/components/AuthModal.vue';
 import MainNavbar from '@/components/MainNavbar.vue';
+import PaymentMethodModal from '@/components/PaymentMethodModal.vue';
 import { consumeAuthNotice, getCurrentUser, getUserAccessState, isAuthenticated } from '@/utils/auth';
+import { fetchPaymentSettings } from '@/utils/payment';
 
 export default {
   components: {
     AuthModal,
-    MainNavbar
+    MainNavbar,
+    PaymentMethodModal,
   },
   name: 'HomePage',
   data() {
@@ -304,13 +315,20 @@ export default {
       lines: [],
       isMultiline: false,
       showAuthModal: false,
+      showPaymentModal: false,
       authModalMode: 'login',
       pendingCalculation: false,
       accessNotice: '',
+      paymentSettings: {
+        lineQrImage: '',
+        transferQrImage: '',
+        paymentMessage: 'กรุณาโอนเงินตาม QR Code และส่งหลักฐานการโอนมาที่ Line ตาม QR Code ด้านล่าง',
+      },
     };
   },
   created() {
     this.syncAccessNotice();
+    this.loadPaymentSettings();
     window.addEventListener('auth-changed', this.handleAuthChanged);
   },
   beforeUnmount() {
@@ -351,6 +369,13 @@ export default {
       const user = getCurrentUser();
       const accessState = getUserAccessState(user);
       this.accessNotice = accessState.message;
+    },
+    async loadPaymentSettings() {
+      try {
+        this.paymentSettings = await fetchPaymentSettings();
+      } catch (error) {
+        console.error(error);
+      }
     },
     updateSummary() {
       this.lines = this.inputNumbers.split('\n')
@@ -630,6 +655,12 @@ export default {
     closeAuthModal() {
       this.showAuthModal = false;
       this.pendingCalculation = false;
+    },
+    openPaymentModal() {
+      this.showPaymentModal = true;
+    },
+    closePaymentModal() {
+      this.showPaymentModal = false;
     },
     async handleAuthSuccess() {
       this.showAuthModal = false;
@@ -941,6 +972,20 @@ h3 {
 .submit-button:disabled {
   background-color: #9ca3af;
   cursor: not-allowed;
+}
+
+.payment-button {
+  padding: 0.5em 1em;
+  border: none;
+  border-radius: 4px;
+  background-color: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-size: 1em;
+}
+
+.payment-button:hover {
+  background-color: #1d4ed8;
 }
 
 .full-screen {

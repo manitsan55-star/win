@@ -16,6 +16,58 @@
       <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
       <div v-if="successMessage" class="success-banner">{{ successMessage }}</div>
 
+      <div class="payment-settings-card">
+        <h3>ตั้งค่าวิธีชำระเงิน</h3>
+        <div class="payment-settings-grid">
+          <div class="payment-message-group">
+            <label class="field-label" for="payment-message">คำอธิบายวิธีชำระเงิน</label>
+            <textarea
+              id="payment-message"
+              v-model="paymentSettings.paymentMessage"
+              class="payment-message-input"
+              :disabled="isSavingPaymentSettings"
+            ></textarea>
+          </div>
+
+          <div class="payment-upload-card">
+            <div class="payment-upload-header">
+              <span class="field-label">QR Code โอนเงิน</span>
+              <button
+                type="button"
+                class="clear-button"
+                :disabled="isSavingPaymentSettings || !paymentSettings.transferQrImage"
+                @click="clearPaymentImage('transferQrImage')"
+              >
+                ล้าง
+              </button>
+            </div>
+            <input type="file" accept="image/*" class="form-input" :disabled="isSavingPaymentSettings" @change="handlePaymentImageChange($event, 'transferQrImage')" />
+            <img v-if="paymentSettings.transferQrImage" :src="paymentSettings.transferQrImage" alt="QR Code โอนเงิน" class="payment-preview-image" />
+            <div v-else class="payment-preview-placeholder">ยังไม่ได้อัปโหลด QR Code โอนเงิน</div>
+          </div>
+
+          <div class="payment-upload-card">
+            <div class="payment-upload-header">
+              <span class="field-label">Line QR Code</span>
+              <button
+                type="button"
+                class="clear-button"
+                :disabled="isSavingPaymentSettings || !paymentSettings.lineQrImage"
+                @click="clearPaymentImage('lineQrImage')"
+              >
+                ล้าง
+              </button>
+            </div>
+            <input type="file" accept="image/*" class="form-input" :disabled="isSavingPaymentSettings" @change="handlePaymentImageChange($event, 'lineQrImage')" />
+            <img v-if="paymentSettings.lineQrImage" :src="paymentSettings.lineQrImage" alt="Line QR Code" class="payment-preview-image" />
+            <div v-else class="payment-preview-placeholder">ยังไม่ได้อัปโหลด Line QR Code</div>
+          </div>
+        </div>
+        <button @click="savePaymentSettings" class="create-button payment-save-button" :disabled="isSavingPaymentSettings">
+          {{ isSavingPaymentSettings ? 'กำลังบันทึก...' : 'บันทึกวิธีชำระเงิน' }}
+        </button>
+      </div>
+
       <div class="create-user-card">
         <h3>เพิ่มผู้ใช้</h3>
         <div class="create-user-grid">
@@ -133,6 +185,7 @@
 <script>
 import MainNavbar from './MainNavbar.vue';
 import { createAdminUser, deleteAdminUser, fetchAdminUsers, getCurrentUser, updateAdminUserAccess } from '@/utils/auth';
+import { fetchAdminPaymentSettings, readFileAsDataUrl, updateAdminPaymentSettings } from '@/utils/payment';
 
 export default {
   name: 'AdminPage',
@@ -148,6 +201,12 @@ export default {
       successMessage: '',
       currentUserId: null,
       isCreatingUser: false,
+      isSavingPaymentSettings: false,
+      paymentSettings: {
+        lineQrImage: '',
+        transferQrImage: '',
+        paymentMessage: 'กรุณาโอนเงินตาม QR Code และส่งหลักฐานการโอนมาที่ Line ตาม QR Code ด้านล่าง',
+      },
       createForm: {
         username: '',
         password: '',
@@ -160,6 +219,7 @@ export default {
   created() {
     this.currentUserId = getCurrentUser()?.id || null;
     this.loadUsers();
+    this.loadPaymentSettings();
   },
   methods: {
     noop() {},
@@ -173,6 +233,52 @@ export default {
         this.errorMessage = err.message || 'ไม่สามารถโหลดผู้ใช้ได้';
       } finally {
         this.isLoading = false;
+      }
+    },
+    async loadPaymentSettings() {
+      try {
+        this.paymentSettings = await fetchAdminPaymentSettings();
+      } catch (err) {
+        this.errorMessage = err.message || 'ไม่สามารถโหลดข้อมูลการชำระเงินได้';
+      }
+    },
+    async handlePaymentImageChange(event, field) {
+      const file = event.target.files?.[0];
+
+      if (!file) {
+        return;
+      }
+
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        this.paymentSettings = {
+          ...this.paymentSettings,
+          [field]: dataUrl,
+        };
+      } catch (err) {
+        this.errorMessage = err.message || 'ไม่สามารถอ่านไฟล์รูปภาพได้';
+      } finally {
+        event.target.value = '';
+      }
+    },
+    clearPaymentImage(field) {
+      this.paymentSettings = {
+        ...this.paymentSettings,
+        [field]: '',
+      };
+    },
+    async savePaymentSettings() {
+      this.isSavingPaymentSettings = true;
+      this.errorMessage = '';
+      this.successMessage = '';
+
+      try {
+        this.paymentSettings = await updateAdminPaymentSettings(this.paymentSettings);
+        this.successMessage = 'บันทึกวิธีชำระเงินแล้ว';
+      } catch (err) {
+        this.errorMessage = err.message || 'ไม่สามารถบันทึกวิธีชำระเงินได้';
+      } finally {
+        this.isSavingPaymentSettings = false;
       }
     },
     async createUser() {
@@ -365,6 +471,82 @@ h2 {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
+.payment-settings-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.payment-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.payment-message-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field-label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.payment-message-input {
+  min-height: 140px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.75rem;
+  resize: vertical;
+}
+
+.payment-upload-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+}
+
+.payment-upload-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.payment-preview-image {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 8px;
+  background-color: white;
+}
+
+.payment-preview-placeholder {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #6b7280;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  background-color: white;
+  padding: 1rem;
+}
+
+.payment-save-button {
+  min-width: 200px;
+}
+
 .create-user-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -494,6 +676,7 @@ th {
 .refresh-button:disabled,
 .create-button:disabled,
 .form-input:disabled,
+.payment-message-input:disabled,
 .role-select:disabled,
 .expire-input:disabled,
 .clear-button:disabled {

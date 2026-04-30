@@ -584,6 +584,14 @@ export function errorResponse(error) {
     return jsonResponse({ error: 'ค่า expire_date ไม่ถูกต้อง' }, 400);
   }
 
+  if (error.message === 'invalid_payment_image') {
+    return jsonResponse({ error: 'รูปภาพ QR Code ไม่ถูกต้อง' }, 400);
+  }
+
+  if (error.message === 'payment_image_too_large') {
+    return jsonResponse({ error: 'ไฟล์รูป QR Code มีขนาดใหญ่เกินไป' }, 400);
+  }
+
   if (error.message === 'user_not_found') {
     return jsonResponse({ error: 'ไม่พบผู้ใช้' }, 404);
   }
