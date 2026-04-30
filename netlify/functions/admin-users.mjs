@@ -26,6 +26,7 @@ export default async (request) => {
         password: body.password,
         role: body.role,
         locked: body.locked,
+        new_user: body.new_user,
         expire_date: body.expire_date,
       });
 
@@ -38,6 +39,7 @@ export default async (request) => {
         userId: body.userId,
         role: body.role,
         locked: body.locked,
+        new_user: body.new_user,
         expire_date: body.expire_date,
         actorId: admin.id,
       });

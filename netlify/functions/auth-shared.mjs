@@ -97,6 +97,7 @@ function hydrateUser(user) {
     ...user,
     role: AVAILABLE_ROLES.includes(user.role) ? user.role : 'user',
     locked: Boolean(user.locked),
+    new_user: Boolean(user.new_user),
     expire_date: normalizeExpireDate(user.expire_date),
     currentSessionId: typeof user.currentSessionId === 'string' ? user.currentSessionId : null,
   };
@@ -130,6 +131,7 @@ export function sanitizeUser(user) {
     username: user.username,
     role: user.role,
     locked: Boolean(user.locked),
+    new_user: Boolean(user.new_user),
     expire_date: user.expire_date || null,
     createdAt: user.createdAt,
   };
@@ -217,6 +219,7 @@ export async function ensureSeedAdmin() {
       passwordHash: await bcrypt.hash(credentials.password, 10),
       role: 'admin',
       locked: false,
+      new_user: false,
       expire_date: null,
     };
 
@@ -231,6 +234,7 @@ export async function ensureSeedAdmin() {
     passwordHash: await bcrypt.hash(credentials.password, 10),
     role: 'admin',
     locked: false,
+    new_user: false,
     expire_date: null,
     createdAt: new Date().toISOString(),
   };
@@ -273,6 +277,7 @@ export async function createUser({ username, password, confirmPassword }) {
     passwordHash,
     role,
     locked: false,
+    new_user: true,
     expire_date: null,
     createdAt: new Date().toISOString(),
   };
@@ -290,7 +295,7 @@ export async function createUser({ username, password, confirmPassword }) {
   return sanitizeUser(persistedUser);
 }
 
-export async function createUserByAdmin({ username, password, role, locked, expire_date }) {
+export async function createUserByAdmin({ username, password, role, locked, new_user, expire_date }) {
   await ensureSeedAdmin();
 
   const trimmedUsername = String(username || '').trim();
@@ -308,6 +313,10 @@ export async function createUserByAdmin({ username, password, role, locked, expi
     throw new Error('invalid_locked');
   }
 
+  if (new_user !== undefined && typeof new_user !== 'boolean') {
+    throw new Error('invalid_new_user');
+  }
+
   const existingUser = await findUserByUsername(trimmedUsername);
 
   if (existingUser) {
@@ -322,6 +331,7 @@ export async function createUserByAdmin({ username, password, role, locked, expi
     passwordHash,
     role: role || 'user',
     locked: locked ?? false,
+    new_user: new_user ?? true,
     expire_date: normalizeExpireDate(expire_date),
     createdAt: new Date().toISOString(),
     currentSessionId: null,
@@ -489,7 +499,7 @@ async function ensureRemainingActiveAdmin(currentUser, nextUser) {
   }
 }
 
-export async function updateUserAccess({ userId, role, locked, expire_date, actorId }) {
+export async function updateUserAccess({ userId, role, locked, new_user, expire_date, actorId }) {
   const user = await findUserById(userId);
 
   if (!user) {
@@ -508,6 +518,10 @@ export async function updateUserAccess({ userId, role, locked, expire_date, acto
     throw new Error('invalid_locked');
   }
 
+  if (new_user !== undefined && typeof new_user !== 'boolean') {
+    throw new Error('invalid_new_user');
+  }
+
   const normalizedExpireDate = expire_date === undefined ? user.expire_date : normalizeExpireDate(expire_date);
 
   if (
@@ -521,6 +535,7 @@ export async function updateUserAccess({ userId, role, locked, expire_date, acto
     ...user,
     role: role ?? user.role,
     locked: locked ?? user.locked,
+    new_user: new_user ?? user.new_user,
     expire_date: normalizedExpireDate,
   };
 
@@ -578,6 +593,10 @@ export function errorResponse(error) {
 
   if (error.message === 'invalid_locked') {
     return jsonResponse({ error: 'ค่า locked ต้องเป็น true หรือ false' }, 400);
+  }
+
+  if (error.message === 'invalid_new_user') {
+    return jsonResponse({ error: 'ค่า new_user ต้องเป็น true หรือ false' }, 400);
   }
 
   if (error.message === 'invalid_expire_date') {

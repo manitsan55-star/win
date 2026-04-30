@@ -130,6 +130,7 @@
               <th>Username</th>
               <th>Role</th>
               <th>Locked</th>
+              <th>New User</th>
               <th>Expire Date</th>
               <th>Created</th>
               <th>Actions</th>
@@ -159,6 +160,17 @@
                     @change="changeLocked(user, $event.target.checked)"
                   />
                   <span>{{ user.locked ? 'locked' : 'active' }}</span>
+                </label>
+              </td>
+              <td>
+                <label class="lock-toggle">
+                  <input
+                    type="checkbox"
+                    :checked="user.new_user"
+                    :disabled="isBusy(user.id)"
+                    @change="changeNewUser(user, $event.target.checked)"
+                  />
+                  <span>{{ user.new_user ? 'new' : 'paid' }}</span>
                 </label>
               </td>
               <td>
@@ -355,6 +367,22 @@ export default {
         this.successMessage = `อัปเดต role ของ ${user.username} แล้ว`;
       } catch (err) {
         this.errorMessage = err.message || 'ไม่สามารถเปลี่ยน role ได้';
+        await this.loadUsers();
+      } finally {
+        this.setBusy(user.id, false);
+      }
+    },
+    async changeNewUser(user, newUser) {
+      this.setBusy(user.id, true);
+      this.errorMessage = '';
+      this.successMessage = '';
+
+      try {
+        const updatedUser = await updateAdminUserAccess({ userId: user.id, new_user: newUser });
+        this.replaceUser(updatedUser);
+        this.successMessage = `อัปเดตสถานะ new user ของ ${user.username} แล้ว`;
+      } catch (err) {
+        this.errorMessage = err.message || 'ไม่สามารถอัปเดตสถานะ new user ได้';
         await this.loadUsers();
       } finally {
         this.setBusy(user.id, false);

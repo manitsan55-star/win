@@ -2,8 +2,8 @@
   <nav class="navbar mb-4">
     <div class="navbar-brand">
       <span class="logo">WINWAI</span>
+      <button type="button" class="payment-button" @click="$emit('open-payment-modal')">วิธีชำระเงิน</button>
     </div>
-    <button type="button" class="payment-button" @click="$emit('open-payment-modal')">วิธีชำระเงิน</button>
     <div v-if="username" class="user-info">
       <button type="button" class="mobile-user-toggle" @click="toggleMobileDetails">
         {{ isMobileDetailsOpen ? 'ซ่อนข้อมูล' : 'แสดงข้อมูล' }}
@@ -116,6 +116,7 @@ export default {
 .navbar-brand {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
   font-size: 1.5em;
   font-weight: bold;
 }
@@ -242,10 +243,12 @@ export default {
   
   .navbar-brand {
     font-size: 1.2em;
+    width: 100%;
+    justify-content: space-between;
   }
 
   .payment-button {
-    width: 100%;
+    width: auto;
   }
   
   .user-info {

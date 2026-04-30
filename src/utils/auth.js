@@ -162,6 +162,7 @@ export function getExpireRemainingText(user = getCurrentUser()) {
 export function getUserAccessState(user = getCurrentUser()) {
   const locked = isUserLocked(user);
   const expired = isUserExpired(user);
+  const isNewUser = Boolean(user?.new_user);
 
   let message = '';
 
@@ -169,12 +170,15 @@ export function getUserAccessState(user = getCurrentUser()) {
     message = 'บัญชีของคุณถูกล็อก จึงยังไม่สามารถคำนวณได้';
   } else if (expired) {
     message = 'บัญชีของคุณหมดอายุแล้ว จึงยังไม่สามารถคำนวณได้';
+  } else if (isNewUser) {
+    message = 'user ใหม่ กรุณาเติมเงิน';
   }
 
   return {
     locked,
     expired,
-    blocked: locked || expired,
+    newUser: isNewUser,
+    blocked: locked || expired || isNewUser,
     message,
     expireDateText: formatExpireDate(user?.expire_date),
     expireRemainingText: getExpireRemainingText(user),
@@ -254,19 +258,19 @@ export async function fetchAdminUsers() {
   return data.users || [];
 }
 
-export async function createAdminUser({ username, password, role, locked, expire_date }) {
+export async function createAdminUser({ username, password, role, locked, new_user, expire_date }) {
   const data = await requestAdmin('', {
     method: 'POST',
-    body: JSON.stringify({ username, password, role, locked, expire_date }),
+    body: JSON.stringify({ username, password, role, locked, new_user, expire_date }),
   });
 
   return data.user;
 }
 
-export async function updateAdminUserAccess({ userId, role, locked, expire_date }) {
+export async function updateAdminUserAccess({ userId, role, locked, new_user, expire_date }) {
   const data = await requestAdmin('', {
     method: 'PATCH',
-    body: JSON.stringify({ userId, role, locked, expire_date }),
+    body: JSON.stringify({ userId, role, locked, new_user, expire_date }),
   });
 
   const currentUser = getCurrentUser();
