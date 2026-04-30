@@ -1,5 +1,5 @@
 <template>
-  <MainNavbar @open-auth-modal="openAuthModal" />
+  <MainNavbar @open-auth-modal="openAuthModal" @open-payment-modal="openPaymentModal" />
   <div :class="BoxClass">
     <div>
       <div v-if="accessNotice" class="access-banner">
@@ -20,9 +20,6 @@
         </button>
         <button @click="submitData" class="submit-button" :disabled="isCalculationBlocked">
           คำนวณ
-        </button>
-        <button @click="openPaymentModal" class="payment-button">
-          วิธีชำระเงิน
         </button>
       </div>
     </div>
@@ -972,20 +969,6 @@ h3 {
 .submit-button:disabled {
   background-color: #9ca3af;
   cursor: not-allowed;
-}
-
-.payment-button {
-  padding: 0.5em 1em;
-  border: none;
-  border-radius: 4px;
-  background-color: #2563eb;
-  color: white;
-  cursor: pointer;
-  font-size: 1em;
-}
-
-.payment-button:hover {
-  background-color: #1d4ed8;
 }
 
 .full-screen {

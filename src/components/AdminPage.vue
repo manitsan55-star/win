@@ -5,18 +5,35 @@
     <div class="admin-container">
       <div class="header-row">
         <div>
-          <h2>จัดการผู้ใช้</h2>
-          <p class="subtitle">ผู้ใช้คนแรกที่สมัครจะได้ role เป็น admin อัตโนมัติ</p>
+          <h2>{{ activeTab === 'users' ? 'จัดการผู้ใช้' : 'ตั้งค่าวิธีชำระเงิน' }}</h2>
+          <p class="subtitle">{{ activeTab === 'users' ? 'ผู้ใช้คนแรกที่สมัครจะได้ role เป็น admin อัตโนมัติ' : 'อัปโหลด QR Code และแก้ข้อความวิธีชำระเงินสำหรับผู้ใช้' }}</p>
         </div>
-        <button @click="loadUsers" class="refresh-button" :disabled="isLoading">
-          {{ isLoading ? 'กำลังโหลด...' : 'รีเฟรช' }}
+        <button @click="refreshActiveTab" class="refresh-button" :disabled="isRefreshDisabled">
+          {{ refreshButtonText }}
+        </button>
+      </div>
+
+      <div class="tabs-row">
+        <button
+          type="button"
+          :class="['tab-button', { active: activeTab === 'users' }]"
+          @click="activeTab = 'users'"
+        >
+          จัดการผู้ใช้
+        </button>
+        <button
+          type="button"
+          :class="['tab-button', { active: activeTab === 'payment' }]"
+          @click="activeTab = 'payment'"
+        >
+          ตั้งค่าวิธีชำระเงิน
         </button>
       </div>
 
       <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
       <div v-if="successMessage" class="success-banner">{{ successMessage }}</div>
 
-      <div class="payment-settings-card">
+      <div v-if="activeTab === 'payment'" class="payment-settings-card">
         <h3>ตั้งค่าวิธีชำระเงิน</h3>
         <div class="payment-settings-grid">
           <div class="payment-message-group">
@@ -68,7 +85,7 @@
         </button>
       </div>
 
-      <div class="create-user-card">
+      <div v-if="activeTab === 'users'" class="create-user-card">
         <h3>เพิ่มผู้ใช้</h3>
         <div class="create-user-grid">
           <input
@@ -106,7 +123,7 @@
         </div>
       </div>
 
-      <div v-if="users.length > 0" class="user-list">
+      <div v-if="activeTab === 'users' && users.length > 0" class="user-list">
         <table>
           <thead>
             <tr>
@@ -175,7 +192,7 @@
         </table>
       </div>
 
-      <div v-else class="empty-state">
+      <div v-if="activeTab === 'users' && users.length === 0" class="empty-state">
         ยังไม่มีผู้ใช้ในระบบ
       </div>
     </div>
@@ -200,6 +217,7 @@ export default {
       errorMessage: '',
       successMessage: '',
       currentUserId: null,
+      activeTab: 'users',
       isCreatingUser: false,
       isSavingPaymentSettings: false,
       paymentSettings: {
@@ -221,8 +239,30 @@ export default {
     this.loadUsers();
     this.loadPaymentSettings();
   },
+  computed: {
+    refreshButtonText() {
+      if (this.activeTab === 'users') {
+        return this.isLoading ? 'กำลังโหลด...' : 'รีเฟรช';
+      }
+
+      return this.isSavingPaymentSettings ? 'กำลังโหลด...' : 'รีเฟรช';
+    },
+    isRefreshDisabled() {
+      return this.activeTab === 'users' ? this.isLoading : this.isSavingPaymentSettings;
+    },
+  },
   methods: {
     noop() {},
+    async refreshActiveTab() {
+      this.errorMessage = '';
+
+      if (this.activeTab === 'payment') {
+        await this.loadPaymentSettings();
+        return;
+      }
+
+      await this.loadUsers();
+    },
     async loadUsers() {
       this.isLoading = true;
       this.errorMessage = '';
@@ -452,6 +492,29 @@ h2 {
   align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.tabs-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  border: 1px solid #d1d5db;
+  background-color: white;
+  color: #374151;
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.tab-button.active {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: white;
 }
 
 .refresh-button {

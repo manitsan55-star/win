@@ -3,6 +3,7 @@
     <div class="navbar-brand">
       <span class="logo">WINWAI</span>
     </div>
+    <button type="button" class="payment-button" @click="$emit('open-payment-modal')">วิธีชำระเงิน</button>
     <div v-if="username" class="user-info">
       <button type="button" class="mobile-user-toggle" @click="toggleMobileDetails">
         {{ isMobileDetailsOpen ? 'ซ่อนข้อมูล' : 'แสดงข้อมูล' }}
@@ -33,7 +34,7 @@ import { formatExpireDate, getCurrentUser, getUserAccessState, logoutUser } from
 
 export default {
   name: "NavbarComponent",
-  emits: ['open-auth-modal'],
+  emits: ['open-auth-modal', 'open-payment-modal'],
   data() {
     return {
       username: null,
@@ -199,6 +200,16 @@ export default {
   cursor: pointer;
 }
 
+.payment-button {
+  border: none;
+  background-color: #2563eb;
+  color: white;
+  padding: 0.4em 0.75em;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
 .logout-button {
   background-color: #ff4c4c;
   color: white;
@@ -231,6 +242,10 @@ export default {
   
   .navbar-brand {
     font-size: 1.2em;
+  }
+
+  .payment-button {
+    width: 100%;
   }
   
   .user-info {
