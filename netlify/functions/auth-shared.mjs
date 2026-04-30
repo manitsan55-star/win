@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 
 const STORE_NAME = 'vin-number-auth';
 const USER_KEY_PREFIX = 'user:';
+const USER_INDEX_KEY = 'user-index';
 const AVAILABLE_ROLES = ['admin', 'vip', 'user'];
 
 function getStoreInstance() {
@@ -45,6 +46,39 @@ export function normalizeUsername(username) {
 
 function getUserKey(username) {
   return `${USER_KEY_PREFIX}${normalizeUsername(username)}`;
+}
+
+async function getUserIndex() {
+  const usernames = await getStoreInstance().get(USER_INDEX_KEY, { type: 'json' });
+
+  if (!Array.isArray(usernames)) {
+    return [];
+  }
+
+  return [...new Set(usernames.map((username) => normalizeUsername(username)).filter(Boolean))];
+}
+
+async function saveUserIndex(usernames) {
+  const normalized = [...new Set(usernames.map((username) => normalizeUsername(username)).filter(Boolean))].sort();
+  await getStoreInstance().setJSON(USER_INDEX_KEY, normalized);
+  return normalized;
+}
+
+async function addUsernameToIndex(username) {
+  const normalizedUsername = normalizeUsername(username);
+  const currentIndex = await getUserIndex();
+
+  if (currentIndex.includes(normalizedUsername)) {
+    return currentIndex;
+  }
+
+  return saveUserIndex([...currentIndex, normalizedUsername]);
+}
+
+async function removeUsernameFromIndex(username) {
+  const normalizedUsername = normalizeUsername(username);
+  const currentIndex = await getUserIndex();
+  return saveUserIndex(currentIndex.filter((item) => item !== normalizedUsername));
 }
 
 function isValidDateOnlyString(value) {
@@ -243,6 +277,8 @@ export async function ensureSeedAdmin() {
     onlyIfNew: true,
   });
 
+  await addUsernameToIndex(credentials.username);
+
   return sanitizeUser(user);
 }
 
@@ -289,6 +325,8 @@ export async function createUser({ username, password, confirmPassword }) {
   if (result && result.modified === false) {
     throw new Error('username นี้ถูกใช้งานแล้ว');
   }
+
+  await addUsernameToIndex(trimmedUsername);
 
   const persistedUser = (await waitForUserPersistence(trimmedUsername)) || user;
 
@@ -344,6 +382,8 @@ export async function createUserByAdmin({ username, password, role, locked, new_
   if (result && result.modified === false) {
     throw new Error('username นี้ถูกใช้งานแล้ว');
   }
+
+  await addUsernameToIndex(trimmedUsername);
 
   const persistedUser = (await waitForUserPersistence(trimmedUsername)) || user;
 
@@ -411,6 +451,15 @@ export async function createSessionForUsername(username) {
   return startUserSession(user);
 }
 
+export async function createSessionForUser(user) {
+  if (!user) {
+    throw new Error('user_not_found');
+  }
+
+  assertUserCanAccess(user);
+  return startUserSession(user);
+}
+
 export function issueToken(user) {
   return jwt.sign(
     {
@@ -467,12 +516,28 @@ export async function requireAdmin(request) {
 export async function listUsers() {
   await ensureSeedAdmin();
 
+  const indexedUsernames = await getUserIndex();
+
+  if (indexedUsernames.length > 0) {
+    const users = await Promise.all(
+      indexedUsernames.map((username) => getStoreInstance().get(getUserKey(username), { type: 'json' }))
+    );
+
+    return users.filter(Boolean);
+  }
+
   const { blobs } = await getStoreInstance().list({ prefix: USER_KEY_PREFIX });
   const users = await Promise.all(
     blobs.map(({ key }) => getStoreInstance().get(key, { type: 'json' }))
   );
 
-  return users.filter(Boolean);
+  const hydratedUsers = users.filter(Boolean);
+
+  if (hydratedUsers.length > 0) {
+    await saveUserIndex(hydratedUsers.map((user) => user.username));
+  }
+
+  return hydratedUsers;
 }
 
 async function findUserById(id) {
@@ -483,6 +548,7 @@ async function findUserById(id) {
 async function saveUser(user) {
   const normalizedUser = hydrateUser(user);
   await getStoreInstance().setJSON(getUserKey(normalizedUser.username), normalizedUser);
+  await addUsernameToIndex(normalizedUser.username);
   return normalizedUser;
 }
 
@@ -558,6 +624,7 @@ export async function deleteUserById({ userId, actorId }) {
   await ensureRemainingActiveAdmin(user, { ...user, role: 'user', locked: true, expire_date: user.expire_date });
 
   await getStoreInstance().delete(getUserKey(user.username));
+  await removeUsernameFromIndex(user.username);
 }
 
 export function sanitizeUsers(users) {
