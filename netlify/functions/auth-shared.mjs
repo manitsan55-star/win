@@ -216,6 +216,23 @@ async function waitForUserPersistence(username, attempts = 5) {
   return null;
 }
 
+async function waitForTokenSessionUser(username, sessionId, attempts = 8) {
+  let latestUser = null;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const user = await findUserByUsername(username);
+
+    if (user?.currentSessionId === sessionId) {
+      return user;
+    }
+
+    latestUser = user || latestUser;
+    await delay(150);
+  }
+
+  return latestUser;
+}
+
 async function waitForSessionPersistence(username, sessionId, attempts = 5) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const user = await findUserByUsername(username);
@@ -486,7 +503,7 @@ export async function getUserFromRequest(request) {
 
   const token = authorization.slice('Bearer '.length);
   const decoded = jwt.verify(token, getJwtSecret());
-  const user = await findUserByUsername(decoded.username);
+  const user = await waitForTokenSessionUser(decoded.username, decoded.sessionId);
 
   if (!user) {
     throw new Error('unauthorized');
