@@ -10,6 +10,12 @@ function getStoreInstance() {
   return getStore(STORE_NAME);
 }
 
+function delay(milliseconds) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
+}
+
 export function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -74,6 +80,20 @@ function getJwtSecret() {
   }
 
   return secret;
+}
+
+async function waitForUserPersistence(username, attempts = 5) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const user = await findUserByUsername(username);
+
+    if (user) {
+      return user;
+    }
+
+    await delay(150);
+  }
+
+  return null;
 }
 
 export async function ensureSeedAdmin() {
@@ -157,11 +177,13 @@ export async function createUser({ username, password, confirmPassword }) {
     onlyIfNew: true,
   });
 
-  if (!result.modified) {
+  if (result && result.modified === false) {
     throw new Error('username นี้ถูกใช้งานแล้ว');
   }
 
-  return sanitizeUser(user);
+  const persistedUser = (await waitForUserPersistence(trimmedUsername)) || user;
+
+  return sanitizeUser(persistedUser);
 }
 
 export async function authenticateUser({ username, password }) {
