@@ -153,6 +153,20 @@ async function waitForUserPersistence(username, attempts = 5) {
   return null;
 }
 
+async function waitForSessionPersistence(username, sessionId, attempts = 5) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const user = await findUserByUsername(username);
+
+    if (user?.currentSessionId === sessionId) {
+      return user;
+    }
+
+    await delay(150);
+  }
+
+  return null;
+}
+
 export async function ensureSeedAdmin() {
   const credentials = getSeedAdminCredentials();
 
@@ -288,9 +302,11 @@ async function startUserSession(user) {
 
   await saveUser(updatedUser);
 
+  const persistedUser = (await waitForSessionPersistence(updatedUser.username, updatedUser.currentSessionId)) || updatedUser;
+
   return {
-    user: sanitizeUser(updatedUser),
-    token: issueToken(updatedUser),
+    user: sanitizeUser(persistedUser),
+    token: issueToken(persistedUser),
   };
 }
 
@@ -342,7 +358,11 @@ export async function getUserFromRequest(request) {
     throw new Error('unauthorized');
   }
 
-  if (!decoded.sessionId || !user.currentSessionId || decoded.sessionId !== user.currentSessionId) {
+  if (!decoded.sessionId || !user.currentSessionId) {
+    throw new Error('unauthorized');
+  }
+
+  if (decoded.sessionId !== user.currentSessionId) {
     throw new Error('session_replaced');
   }
 
