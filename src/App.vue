@@ -7,7 +7,7 @@
 <script>
 import { getAuthToken, restoreSession } from '@/utils/auth';
 
-const SESSION_CHECK_INTERVAL_MS = 10000;
+const SESSION_CHECK_INTERVAL_MS = 2000;
 
 export default {
   name: 'App',

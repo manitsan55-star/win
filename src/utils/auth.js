@@ -55,7 +55,15 @@ async function requestAuth(path, payload, token) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || 'Authentication failed');
+    const error = new Error(data.error || 'Authentication failed');
+
+    // Handle session_replaced error immediately
+    if (error.message === 'session_replaced') {
+      setAuthNotice('บัญชีนี้มีการเข้าสู่ระบบจากอุปกรณ์อื่นแล้ว');
+      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
+    }
+
+    throw error;
   }
 
   return data;
