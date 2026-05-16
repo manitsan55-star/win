@@ -13,7 +13,6 @@ export default async (request) => {
     if (request.method === 'PUT') {
       const body = await readJsonBody(request);
       const settings = await savePaymentSettings({
-        lineQrImage: body.lineQrImage,
         transferQrImage: body.transferQrImage,
         paymentMessage: body.paymentMessage,
       });

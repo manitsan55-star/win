@@ -6,7 +6,7 @@
       <div class="header-row">
         <div>
           <h2>{{ activeTab === 'users' ? 'จัดการผู้ใช้' : 'ตั้งค่าวิธีชำระเงิน' }}</h2>
-          <p class="subtitle">{{ activeTab === 'users' ? 'ผู้ใช้คนแรกที่สมัครจะได้ role เป็น admin อัตโนมัติ' : 'อัปโหลด QR Code และแก้ข้อความวิธีชำระเงินสำหรับผู้ใช้' }}</p>
+          <p class="subtitle">{{ activeTab === 'users' ? 'ตรวจสลิปของแต่ละคนและตั้งวันหมดอายุได้จากตารางผู้ใช้' : 'อัปโหลด QR Code และแก้ข้อความวิธีชำระเงินสำหรับผู้ใช้' }}</p>
         </div>
         <button @click="refreshActiveTab" class="refresh-button" :disabled="isRefreshDisabled">
           {{ refreshButtonText }}
@@ -62,23 +62,6 @@
             <img v-if="paymentSettings.transferQrImage" :src="paymentSettings.transferQrImage" alt="QR Code โอนเงิน" class="payment-preview-image" />
             <div v-else class="payment-preview-placeholder">ยังไม่ได้อัปโหลด QR Code โอนเงิน</div>
           </div>
-
-          <div class="payment-upload-card">
-            <div class="payment-upload-header">
-              <span class="field-label">Line QR Code</span>
-              <button
-                type="button"
-                class="clear-button"
-                :disabled="isSavingPaymentSettings || !paymentSettings.lineQrImage"
-                @click="clearPaymentImage('lineQrImage')"
-              >
-                ล้าง
-              </button>
-            </div>
-            <input type="file" accept="image/*" class="form-input" :disabled="isSavingPaymentSettings" @change="handlePaymentImageChange($event, 'lineQrImage')" />
-            <img v-if="paymentSettings.lineQrImage" :src="paymentSettings.lineQrImage" alt="Line QR Code" class="payment-preview-image" />
-            <div v-else class="payment-preview-placeholder">ยังไม่ได้อัปโหลด Line QR Code</div>
-          </div>
         </div>
         <button @click="savePaymentSettings" class="create-button payment-save-button" :disabled="isSavingPaymentSettings">
           {{ isSavingPaymentSettings ? 'กำลังบันทึก...' : 'บันทึกวิธีชำระเงิน' }}
@@ -128,6 +111,7 @@
           <thead>
             <tr>
               <th>Username</th>
+              <th>Slip</th>
               <th>Role</th>
               <th>Locked</th>
               <th>New User</th>
@@ -139,6 +123,15 @@
           <tbody>
             <tr v-for="user in users" :key="user.id">
               <td>{{ user.username }}</td>
+              <td>
+                <div v-if="getLatestSlipForUser(user)" class="user-slip-cell">
+                  <img :src="getLatestSlipForUser(user).imageData" :alt="`สลิปของ ${user.username}`" class="user-slip-image" />
+                  <div class="user-slip-meta">
+                    <span>{{ formatDate(getLatestSlipForUser(user).createdAt) }}</span>
+                  </div>
+                </div>
+                <span v-else class="user-slip-empty">ยังไม่มีสลิป</span>
+              </td>
               <td>
                 <select
                   :value="user.role"
@@ -214,7 +207,7 @@
 <script>
 import MainNavbar from './MainNavbar.vue';
 import { createAdminUser, deleteAdminUser, fetchAdminUsers, getCurrentUser, updateAdminUserAccess } from '@/utils/auth';
-import { fetchAdminPaymentSettings, readFileAsDataUrl, updateAdminPaymentSettings } from '@/utils/payment';
+import { fetchAdminPaymentSettings, fetchAdminPaymentSlips, readFileAsDataUrl, updateAdminPaymentSettings } from '@/utils/payment';
 
 export default {
   name: 'AdminPage',
@@ -224,6 +217,7 @@ export default {
   data() {
     return {
       users: [],
+      userSlipsByUserId: {},
       isLoading: false,
       pendingUserIds: [],
       errorMessage: '',
@@ -233,9 +227,8 @@ export default {
       isCreatingUser: false,
       isSavingPaymentSettings: false,
       paymentSettings: {
-        lineQrImage: '',
         transferQrImage: '',
-        paymentMessage: 'กรุณาโอนเงินตาม QR Code และส่งหลักฐานการโอนมาที่ Line ตาม QR Code ด้านล่าง',
+        paymentMessage: 'กรุณาโอนเงินตาม QR Code และอัปโหลดสลิปการโอนเงินด้านล่าง',
       },
       createForm: {
         username: '',
@@ -250,6 +243,7 @@ export default {
     this.currentUserId = getCurrentUser()?.id || null;
     this.loadUsers();
     this.loadPaymentSettings();
+    this.loadPaymentSlips();
   },
   computed: {
     refreshButtonText() {
@@ -273,7 +267,7 @@ export default {
         return;
       }
 
-      await this.loadUsers();
+      await Promise.all([this.loadUsers(), this.loadPaymentSlips()]);
     },
     async loadUsers() {
       this.isLoading = true;
@@ -292,6 +286,26 @@ export default {
         this.paymentSettings = await fetchAdminPaymentSettings();
       } catch (err) {
         this.errorMessage = err.message || 'ไม่สามารถโหลดข้อมูลการชำระเงินได้';
+      }
+    },
+    async loadPaymentSlips() {
+      try {
+        const slips = await fetchAdminPaymentSlips();
+        this.userSlipsByUserId = slips.reduce((result, slip) => {
+          if (!slip?.userId) {
+            return result;
+          }
+
+          const currentSlip = result[slip.userId];
+
+          if (!currentSlip || new Date(slip.createdAt).getTime() > new Date(currentSlip.createdAt).getTime()) {
+            result[slip.userId] = slip;
+          }
+
+          return result;
+        }, {});
+      } catch (err) {
+        this.errorMessage = err.message || 'ไม่สามารถโหลดสลิปการโอนเงินได้';
       }
     },
     async handlePaymentImageChange(event, field) {
@@ -454,6 +468,9 @@ export default {
     },
     isCurrentUser(userId) {
       return this.currentUserId === userId;
+    },
+    getLatestSlipForUser(user) {
+      return this.userSlipsByUserId[user.id] || null;
     },
     resetCreateForm() {
       this.createForm = {
@@ -636,6 +653,31 @@ h2 {
 
 .payment-save-button {
   min-width: 200px;
+}
+
+.user-slip-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 150px;
+}
+
+.user-slip-image {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  border-radius: 8px;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+}
+
+.user-slip-meta {
+  color: #4b5563;
+  font-size: 0.85rem;
+}
+
+.user-slip-empty {
+  color: #6b7280;
 }
 
 .create-user-grid {

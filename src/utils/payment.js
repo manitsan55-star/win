@@ -1,7 +1,9 @@
 import { getAuthToken } from '@/utils/auth';
 
 const PAYMENT_API_BASE = '/api/payment-settings';
+const PAYMENT_SLIPS_API_BASE = '/api/payment-slips';
 const ADMIN_PAYMENT_API_BASE = '/api/admin/payment-settings';
+const ADMIN_PAYMENT_SLIPS_API_BASE = '/api/admin/payment-slips';
 
 async function readJsonResponse(response) {
   return response.json().catch(() => ({}));
@@ -57,6 +59,47 @@ export async function updateAdminPaymentSettings(settings) {
   }
 
   return data.settings;
+}
+
+export async function uploadPaymentSlip(imageData) {
+  const token = getAuthToken();
+  const response = await fetch(PAYMENT_SLIPS_API_BASE, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {}),
+    },
+    body: JSON.stringify({ imageData }),
+  });
+  const data = await readJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(data.error || 'ไม่สามารถอัปโหลดสลิปได้');
+  }
+
+  return data.slip;
+}
+
+export async function fetchAdminPaymentSlips() {
+  const token = getAuthToken();
+  const response = await fetch(ADMIN_PAYMENT_SLIPS_API_BASE, {
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : {},
+  });
+  const data = await readJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(data.error || 'ไม่สามารถโหลดสลิปการโอนเงินได้');
+  }
+
+  return data.slips || [];
 }
 
 export function readFileAsDataUrl(file) {

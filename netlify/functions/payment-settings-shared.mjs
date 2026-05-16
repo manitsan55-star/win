@@ -2,7 +2,7 @@ import { getStore } from '@netlify/blobs';
 
 const STORE_NAME = 'vin-number-settings';
 const PAYMENT_SETTINGS_KEY = 'payment-settings';
-const DEFAULT_PAYMENT_MESSAGE = 'กรุณาโอนเงินตาม QR Code และส่งหลักฐานการโอนมาที่ Line ตาม QR Code ด้านล่าง';
+const DEFAULT_PAYMENT_MESSAGE = 'กรุณาโอนเงินตาม QR Code และอัปโหลดสลิปการโอนเงินด้านล่าง';
 const MAX_IMAGE_DATA_LENGTH = 2_500_000;
 
 function getStoreInstance() {
@@ -28,14 +28,12 @@ function sanitizeImageData(value) {
 export function sanitizePaymentSettings(settings) {
   if (!settings) {
     return {
-      lineQrImage: '',
       transferQrImage: '',
       paymentMessage: DEFAULT_PAYMENT_MESSAGE,
     };
   }
 
   return {
-    lineQrImage: typeof settings.lineQrImage === 'string' ? settings.lineQrImage : '',
     transferQrImage: typeof settings.transferQrImage === 'string' ? settings.transferQrImage : '',
     paymentMessage:
       typeof settings.paymentMessage === 'string' && settings.paymentMessage.trim()
@@ -49,9 +47,8 @@ export async function getPaymentSettings() {
   return sanitizePaymentSettings(settings);
 }
 
-export async function savePaymentSettings({ lineQrImage, transferQrImage, paymentMessage }) {
+export async function savePaymentSettings({ transferQrImage, paymentMessage }) {
   const nextSettings = {
-    lineQrImage: sanitizeImageData(lineQrImage),
     transferQrImage: sanitizeImageData(transferQrImage),
     paymentMessage:
       typeof paymentMessage === 'string' && paymentMessage.trim()

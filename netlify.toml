@@ -29,6 +29,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/payment-slips"
+  to = "/.netlify/functions/payment-slips"
+  status = 200
+
+[[redirects]]
   from = "/api/admin/payment-settings"
   to = "/.netlify/functions/admin-payment-settings"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/payment-slips"
+  to = "/.netlify/functions/admin-payment-slips"
   status = 200

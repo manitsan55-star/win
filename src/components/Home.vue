@@ -317,9 +317,8 @@ export default {
       pendingCalculation: false,
       accessNotice: '',
       paymentSettings: {
-        lineQrImage: '',
         transferQrImage: '',
-        paymentMessage: 'กรุณาโอนเงินตาม QR Code และส่งหลักฐานการโอนมาที่ Line ตาม QR Code ด้านล่าง',
+        paymentMessage: 'กรุณาโอนเงินตาม QR Code และอัปโหลดสลิปการโอนเงินด้านล่าง',
       },
     };
   },
