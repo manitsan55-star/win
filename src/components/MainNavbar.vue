@@ -2,10 +2,11 @@
   <nav class="navbar mb-4">
     <div class="navbar-brand">
       <span class="logo">WINWAI</span>
-      <button type="button" class="payment-button" @click="$emit('open-payment-modal')">วิธีชำระเงิน</button>
+      <button v-if="username" type="button" class="payment-button" @click="$emit('open-payment-modal')">วิธีชำระเงิน</button>
       <button v-if="username" type="button" class="mobile-user-toggle mobile-only" @click="toggleMobileDetails">
         {{ isMobileDetailsOpen ? 'ซ่อนข้อมูล' : 'แสดงข้อมูล' }}
       </button>
+      <button v-if="!username" type="button" class="mobile-login-button mobile-only" @click="$emit('open-auth-modal', 'login')">เข้าสู่ระบบ</button>
     </div>
     <div v-if="username" class="user-info">
       <button type="button" class="mobile-user-toggle desktop-only" @click="toggleMobileDetails">
@@ -26,7 +27,7 @@
         <button @click="logout" class="logout-button">ออกจากระบบ</button>
       </div>
     </div>
-    <div v-else>
+    <div v-else class="user-info desktop-only">
       <button @click="$emit('open-auth-modal', 'login')" class="login-button">เข้าสู่ระบบ</button>
     </div>
   </nav>
@@ -210,6 +211,16 @@ export default {
 
 .mobile-only {
   display: none;
+}
+
+.mobile-login-button {
+  border: none;
+  background-color: #007bff;
+  color: white;
+  padding: 0.4em 0.75em;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.85rem;
 }
 
 .payment-button {
