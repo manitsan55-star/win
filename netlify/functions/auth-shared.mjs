@@ -644,30 +644,6 @@ export async function deleteUserById({ userId, actorId }) {
   await removeUsernameFromIndex(user.username);
 }
 
-export async function changePassword({ userId, currentPassword, newPassword }) {
-  const user = await findUserById(userId);
-
-  if (!user) {
-    throw new Error('user_not_found');
-  }
-
-  const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
-
-  if (!isPasswordValid) {
-    throw new Error('invalid_password');
-  }
-
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-  const updatedUser = {
-    ...user,
-    password: hashedPassword,
-  };
-
-  await saveUser(updatedUser);
-  return sanitizeUser(updatedUser);
-}
-
 export function sanitizeUsers(users) {
   return users
     .map((user) => sanitizeUser(user))
