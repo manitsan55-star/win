@@ -48,13 +48,26 @@ export default {
       }
 
       try {
-        await restoreSession();
+        const user = await restoreSession();
+        // If restoreSession returns null, user was logged out, stop checking
+        if (!user) {
+          console.log('User logged out, stopping session check');
+          this.stopSessionCheck();
+        }
       } catch (error) {
-        // Let session_replaced error propagate - it will logout the user
-        // For other errors, just log and continue
-        if (error.message !== 'session_replaced') {
+        // For session_replaced, restoreSession already logged out
+        if (error.message === 'session_replaced') {
+          console.log('Session replaced, stopping session check');
+          this.stopSessionCheck();
+        } else {
           console.error('Session check error:', error);
         }
+      }
+    },
+    stopSessionCheck() {
+      if (this.sessionCheckIntervalId) {
+        window.clearInterval(this.sessionCheckIntervalId);
+        this.sessionCheckIntervalId = null;
       }
     },
     async handleWindowFocus() {

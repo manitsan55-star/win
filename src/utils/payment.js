@@ -1,4 +1,4 @@
-import { getAuthToken } from '@/utils/auth';
+import { getAuthToken, logoutUser } from '@/utils/auth';
 
 const PAYMENT_API_BASE = '/api/payment-settings';
 const PAYMENT_SLIPS_API_BASE = '/api/payment-slips';
@@ -10,10 +10,20 @@ async function readJsonResponse(response) {
 }
 
 export async function fetchPaymentSettings() {
-  const response = await fetch(PAYMENT_API_BASE);
+  const token = getAuthToken();
+  const response = await fetch(PAYMENT_API_BASE, {
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : {},
+  });
   const data = await readJsonResponse(response);
 
   if (!response.ok) {
+    if (data.error === 'session_replaced') {
+      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
+    }
     throw new Error(data.error || 'ไม่สามารถโหลดข้อมูลการชำระเงินได้');
   }
 
@@ -32,6 +42,9 @@ export async function fetchAdminPaymentSettings() {
   const data = await readJsonResponse(response);
 
   if (!response.ok) {
+    if (data.error === 'session_replaced') {
+      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
+    }
     throw new Error(data.error || 'ไม่สามารถโหลดข้อมูลการชำระเงินได้');
   }
 
@@ -55,6 +68,9 @@ export async function updateAdminPaymentSettings(settings) {
   const data = await readJsonResponse(response);
 
   if (!response.ok) {
+    if (data.error === 'session_replaced') {
+      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
+    }
     throw new Error(data.error || 'ไม่สามารถบันทึกข้อมูลการชำระเงินได้');
   }
 
@@ -78,6 +94,9 @@ export async function uploadPaymentSlip(imageData) {
   const data = await readJsonResponse(response);
 
   if (!response.ok) {
+    if (data.error === 'session_replaced') {
+      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
+    }
     throw new Error(data.error || 'ไม่สามารถอัปโหลดสลิปได้');
   }
 
@@ -96,6 +115,9 @@ export async function fetchAdminPaymentSlips() {
   const data = await readJsonResponse(response);
 
   if (!response.ok) {
+    if (data.error === 'session_replaced') {
+      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
+    }
     throw new Error(data.error || 'ไม่สามารถโหลดสลิปการโอนเงินได้');
   }
 

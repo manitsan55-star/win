@@ -217,8 +217,6 @@ async function waitForUserPersistence(username, attempts = 5) {
 }
 
 async function waitForTokenSessionUser(username, sessionId, attempts = 8) {
-  let latestUser = null;
-
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const user = await findUserByUsername(username);
 
@@ -226,11 +224,10 @@ async function waitForTokenSessionUser(username, sessionId, attempts = 8) {
       return user;
     }
 
-    latestUser = user || latestUser;
     await delay(150);
   }
 
-  return latestUser;
+  return null;
 }
 
 async function waitForSessionPersistence(username, sessionId, attempts = 5) {
