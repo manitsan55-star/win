@@ -668,6 +668,28 @@ export async function changePassword({ userId, currentPassword, newPassword }) {
   return sanitizeUser(updatedUser);
 }
 
+export async function adminResetPassword({ userId, newPassword, actorId }) {
+  const user = await findUserById(userId);
+
+  if (!user) {
+    throw new Error('user_not_found');
+  }
+
+  if (user.id === actorId) {
+    throw new Error('cannot_reset_own_password');
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  const updatedUser = {
+    ...user,
+    password: hashedPassword,
+  };
+
+  await saveUser(updatedUser);
+  return sanitizeUser(updatedUser);
+}
+
 export function sanitizeUsers(users) {
   return users
     .map((user) => sanitizeUser(user))
