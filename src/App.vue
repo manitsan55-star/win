@@ -50,7 +50,11 @@ export default {
       try {
         await restoreSession();
       } catch (error) {
-        console.error(error);
+        // Let session_replaced error propagate - it will logout the user
+        // For other errors, just log and continue
+        if (error.message !== 'session_replaced') {
+          console.error('Session check error:', error);
+        }
       }
     },
     async handleWindowFocus() {
