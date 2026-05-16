@@ -231,6 +231,13 @@ export async function restoreSession() {
     }
   }
 
+  // Handle session_replaced error (logged in from another device)
+  if (lastError?.message === 'session_replaced') {
+    setAuthNotice('บัญชีนี้มีการเข้าสู่ระบบจากอุปกรณ์อื่นแล้ว');
+    logoutUser({ preserveNotice: true, reason: 'session_replaced' });
+    throw lastError;
+  }
+
   // Only logout if it's an Unauthorized error (invalid token)
   // For other errors (network, server down), keep the session
   if (lastError?.message === 'Unauthorized') {
