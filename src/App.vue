@@ -22,6 +22,8 @@ export default {
         await restoreSession();
       } catch (error) {
         console.error('Failed to restore session on app load:', error);
+        // Don't automatically logout on restore failure
+        // Keep the token and let the user continue with local session
       }
     }
   },

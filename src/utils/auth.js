@@ -231,9 +231,17 @@ export async function restoreSession() {
     }
   }
 
-  setAuthNotice(lastError?.message || 'Unauthorized');
-  logoutUser({ preserveNotice: true });
-  throw lastError || new Error('Unauthorized');
+  // Only logout if it's an Unauthorized error (invalid token)
+  // For other errors (network, server down), keep the session
+  if (lastError?.message === 'Unauthorized') {
+    setAuthNotice(lastError?.message || 'Unauthorized');
+    logoutUser({ preserveNotice: true });
+    throw lastError || new Error('Unauthorized');
+  }
+
+  // For other errors, just log but don't logout
+  console.error('Failed to restore session (keeping local session):', lastError);
+  return getCurrentUser();
 }
 
 export function logoutUser(options = {}) {
