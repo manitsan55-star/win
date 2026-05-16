@@ -128,12 +128,6 @@
                   <img :src="getLatestSlipForUser(user).imageData" :alt="`สลิปของ ${user.username}`" class="user-slip-image" />
                   <div class="user-slip-meta">
                     <span>{{ formatDate(getLatestSlipForUser(user).createdAt) }}</span>
-                    <div v-if="getLatestSlipForUser(user).ocrAmount" class="ocr-info">
-                      <span class="ocr-label">OCR:</span>
-                      <span class="ocr-amount">{{ getLatestSlipForUser(user).ocrAmount }} บาท</span>
-                      <span v-if="getLatestSlipForUser(user).ocrTime" class="ocr-time">{{ getLatestSlipForUser(user).ocrTime }}</span>
-                      <span class="ocr-confidence">({{ Math.round(getLatestSlipForUser(user).ocrConfidence) }}%)</span>
-                    </div>
                   </div>
                 </div>
                 <span v-else class="user-slip-empty">ยังไม่มีสลิป</span>
@@ -680,37 +674,6 @@ h2 {
 .user-slip-meta {
   color: #4b5563;
   font-size: 0.85rem;
-}
-
-.ocr-info {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  background-color: #e0f2fe;
-  border-radius: 4px;
-  font-size: 0.8rem;
-}
-
-.ocr-label {
-  font-weight: 600;
-  color: #0369a1;
-}
-
-.ocr-amount {
-  font-weight: 600;
-  color: #0c4a6e;
-}
-
-.ocr-time {
-  color: #0c4a6e;
-}
-
-.ocr-confidence {
-  color: #64748b;
-  font-size: 0.75rem;
 }
 
 .user-slip-empty {
