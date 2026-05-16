@@ -7,6 +7,14 @@
         <div>
           <h2>{{ activeTab === 'users' ? 'จัดการผู้ใช้' : 'ตั้งค่าวิธีชำระเงิน' }}</h2>
           <p class="subtitle">{{ activeTab === 'users' ? 'ตรวจสลิปของแต่ละคนและตั้งวันหมดอายุได้จากตารางผู้ใช้' : 'อัปโหลด QR Code และแก้ข้อความวิธีชำระเงินสำหรับผู้ใช้' }}</p>
+          <div class="notification-controls">
+            <div v-if="newSlipCount > 0" class="notification-badge" @click="dismissNotification">
+              มีสลิปใหม่ {{ newSlipCount }} รายการ (คลิกเพื่อปิดแจ้งเตือน)
+            </div>
+            <button type="button" class="sound-toggle-button" @click="toggleSound" :title="soundEnabled ? 'ปิดเสียง' : 'เปิดเสียง'">
+              {{ soundEnabled ? '🔊' : '🔇' }}
+            </button>
+          </div>
         </div>
         <button @click="refreshActiveTab" class="refresh-button" :disabled="isRefreshDisabled">
           {{ refreshButtonText }}
@@ -237,6 +245,11 @@ export default {
         locked: false,
         expire_date: '',
       },
+      lastCheckedSlipTimestamp: null,
+      newSlipCount: 0,
+      slipPollingInterval: null,
+      soundEnabled: true,
+      audioContext: null,
     };
   },
   created() {
@@ -244,6 +257,10 @@ export default {
     this.loadUsers();
     this.loadPaymentSettings();
     this.loadPaymentSlips();
+    this.startSlipPolling();
+  },
+  beforeUnmount() {
+    this.stopSlipPolling();
   },
   computed: {
     refreshButtonText() {
@@ -304,6 +321,18 @@ export default {
 
           return result;
         }, {});
+
+        if (this.lastCheckedSlipTimestamp) {
+          this.newSlipCount = slips.filter((slip) => new Date(slip.createdAt).getTime() > this.lastCheckedSlipTimestamp).length;
+          if (this.newSlipCount > 0) {
+            this.playNotificationSound();
+          }
+        }
+
+        if (slips.length > 0) {
+          const latestTimestamp = Math.max(...slips.map((slip) => new Date(slip.createdAt).getTime()));
+          this.lastCheckedSlipTimestamp = latestTimestamp;
+        }
       } catch (err) {
         this.errorMessage = err.message || 'ไม่สามารถโหลดสลิปการโอนเงินได้';
       }
@@ -472,6 +501,52 @@ export default {
     getLatestSlipForUser(user) {
       return this.userSlipsByUserId[user.id] || null;
     },
+    dismissNotification() {
+      this.newSlipCount = 0;
+    },
+    startSlipPolling() {
+      this.stopSlipPolling();
+      this.slipPollingInterval = setInterval(() => {
+        this.loadPaymentSlips();
+      }, 30000);
+    },
+    stopSlipPolling() {
+      if (this.slipPollingInterval) {
+        clearInterval(this.slipPollingInterval);
+        this.slipPollingInterval = null;
+      }
+    },
+    playNotificationSound() {
+      if (!this.soundEnabled) {
+        return;
+      }
+
+      try {
+        if (!this.audioContext) {
+          this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+
+        gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+
+        oscillator.start(this.audioContext.currentTime);
+        oscillator.stop(this.audioContext.currentTime + 0.5);
+      } catch (error) {
+        console.error('Error playing notification sound:', error);
+      }
+    },
+    toggleSound() {
+      this.soundEnabled = !this.soundEnabled;
+    },
     resetCreateForm() {
       this.createForm = {
         username: '',
@@ -529,6 +604,45 @@ h2 {
 .subtitle {
   margin-top: 0;
   color: #4b5563;
+}
+
+.notification-badge {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  color: #92400e;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.notification-badge:hover {
+  background-color: #fde68a;
+}
+
+.notification-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.sound-toggle-button {
+  border: none;
+  background-color: white;
+  color: #374151;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: background-color 0.2s;
+}
+
+.sound-toggle-button:hover {
+  background-color: #f3f4f6;
 }
 
 .header-row {
