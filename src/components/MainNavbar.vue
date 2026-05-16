@@ -21,17 +21,43 @@
             <span v-if="accessStatusText" :class="statusClass">{{ accessStatusText }}</span>
           </div>
         </div>
+        <button v-if="!isAdminUser" @click="openPasswordModal" class="change-password-button">เปลี่ยนรหัสผ่าน</button>
         <button @click="logout" class="logout-button">ออกจากระบบ</button>
       </div>
     </div>
     <div v-else class="user-info">
       <button class="login-button desktop-only" @click="$emit('open-auth-modal', 'login')">เข้าสู่ระบบ</button>
     </div>
+
+    <div v-if="showPasswordModal" class="modal-overlay" @click="closePasswordModal">
+      <div class="modal-card" @click.stop>
+        <h3>เปลี่ยนรหัสผ่าน</h3>
+        <form @submit.prevent="submitPasswordChange" class="auth-form">
+          <div class="form-group">
+            <label for="current-password">รหัสผ่านเดิม</label>
+            <input id="current-password" v-model="passwordForm.currentPassword" type="password" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label for="new-password">รหัสผ่านใหม่</label>
+            <input id="new-password" v-model="passwordForm.newPassword" type="password" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label for="confirm-new-password">ยืนยันรหัสผ่านใหม่</label>
+            <input id="confirm-new-password" v-model="passwordForm.confirmNewPassword" type="password" class="form-control" />
+          </div>
+          <div v-if="passwordErrorMessage" class="error-message">{{ passwordErrorMessage }}</div>
+          <div class="action-row">
+            <button type="button" class="secondary-button" :disabled="isChangingPassword" @click="closePasswordModal">ยกเลิก</button>
+            <button type="submit" class="primary-button" :disabled="isChangingPassword">{{ isChangingPassword ? 'กำลังเปลี่ยน...' : 'เปลี่ยนรหัสผ่าน' }}</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </nav>
 </template>
 
 <script>
-import { formatExpireDate, getCurrentUser, getUserAccessState, logoutUser } from '@/utils/auth';
+import { changeUserPassword, formatExpireDate, getCurrentUser, getUserAccessState, logoutUser } from '@/utils/auth';
 
 export default {
   name: "NavbarComponent",
@@ -45,6 +71,14 @@ export default {
       accessStatusText: '',
       accessStatusClass: '',
       isMobileDetailsOpen: false,
+      showPasswordModal: false,
+      passwordForm: {
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: '',
+      },
+      passwordErrorMessage: '',
+      isChangingPassword: false,
     };
   },
   created() {
@@ -93,6 +127,50 @@ export default {
     },
     toggleMobileDetails() {
       this.isMobileDetailsOpen = !this.isMobileDetailsOpen;
+    },
+    openPasswordModal() {
+      this.showPasswordModal = true;
+      this.passwordForm = {
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: '',
+      };
+      this.passwordErrorMessage = '';
+    },
+    closePasswordModal() {
+      this.showPasswordModal = false;
+      this.passwordForm = {
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: '',
+      };
+      this.passwordErrorMessage = '';
+    },
+    async submitPasswordChange() {
+      if (!this.passwordForm.currentPassword || !this.passwordForm.newPassword || !this.passwordForm.confirmNewPassword) {
+        this.passwordErrorMessage = 'กรุณากรอกข้อมูลให้ครบ';
+        return;
+      }
+
+      if (this.passwordForm.newPassword !== this.passwordForm.confirmNewPassword) {
+        this.passwordErrorMessage = 'รหัสผ่านใหม่ไม่ตรงกัน';
+        return;
+      }
+
+      try {
+        this.isChangingPassword = true;
+        this.passwordErrorMessage = '';
+        await changeUserPassword({
+          currentPassword: this.passwordForm.currentPassword,
+          newPassword: this.passwordForm.newPassword,
+        });
+        this.closePasswordModal();
+        alert('เปลี่ยนรหัสผ่านสำเร็จ');
+      } catch (error) {
+        this.passwordErrorMessage = error.message || 'ไม่สามารถเปลี่ยนรหัสผ่านได้';
+      } finally {
+        this.isChangingPassword = false;
+      }
     },
   },
   computed: {
