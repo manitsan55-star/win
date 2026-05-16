@@ -270,7 +270,7 @@ export function logoutUser(options = {}) {
   emitAuthChanged({ reason: options.reason || null });
 }
 
-async function requestAdmin(path = '', options = {}) {
+async function requestAdmin(path, options = {}) {
   const token = getAuthToken();
   const headers = {
     'Content-Type': 'application/json',
@@ -289,6 +289,9 @@ async function requestAdmin(path = '', options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    if (data.error === 'session_replaced') {
+      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
+    }
     throw new Error(data.error || 'Admin request failed');
   }
 
@@ -346,6 +349,9 @@ export async function changeUserPassword({ currentPassword, newPassword }) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    if (data.error === 'session_replaced') {
+      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
+    }
     throw new Error(data.error || 'Failed to change password');
   }
 
@@ -366,6 +372,9 @@ export async function adminResetUserPassword({ userId, newPassword }) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    if (data.error === 'session_replaced') {
+      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
+    }
     throw new Error(data.error || 'Failed to reset password');
   }
 
