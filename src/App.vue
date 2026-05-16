@@ -43,12 +43,16 @@ export default {
   },
   methods: {
     async checkSession() {
+      console.log('Session check running...');
       if (!getAuthToken()) {
+        console.log('No auth token, skipping session check');
         return;
       }
 
       try {
+        console.log('Calling restoreSession...');
         const user = await restoreSession();
+        console.log('Restore session result:', user);
         // If restoreSession returns null, user was logged out, stop checking
         if (!user) {
           console.log('User logged out, stopping session check');
