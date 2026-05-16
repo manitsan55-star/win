@@ -193,13 +193,6 @@
               <td>{{ formatDate(user.createdAt) }}</td>
               <td>
                 <button
-                  @click="openResetPasswordModal(user)"
-                  class="reset-password-button"
-                  :disabled="isBusy(user.id) || isCurrentUser(user.id)"
-                >
-                  รีเซ็ตรหัสผ่าน
-                </button>
-                <button
                   @click="deleteUser(user)"
                   class="delete-button"
                   :disabled="isBusy(user.id) || isCurrentUser(user.id)"
@@ -232,39 +225,12 @@
         </div>
       </div>
     </div>
-
-    <div v-if="showResetPasswordModal" class="slip-modal-overlay" @click="closeResetPasswordModal">
-      <div class="slip-modal-content" @click.stop>
-        <div class="slip-modal-header">
-          <h3>รีเซ็ตรหัสผ่าน</h3>
-          <button type="button" class="slip-modal-close" @click="closeResetPasswordModal">✕</button>
-        </div>
-        <div class="slip-modal-body">
-          <p><strong>ผู้ใช้:</strong> {{ resetPasswordUser?.username }}</p>
-          <div class="form-group">
-            <label for="new-password">รหัสผ่านใหม่</label>
-            <input id="new-password" v-model="resetPasswordForm.newPassword" type="password" class="form-input" />
-          </div>
-          <div class="form-group">
-            <label for="confirm-new-password">ยืนยันรหัสผ่านใหม่</label>
-            <input id="confirm-new-password" v-model="resetPasswordForm.confirmNewPassword" type="password" class="form-input" />
-          </div>
-          <div v-if="resetPasswordErrorMessage" class="error-message">{{ resetPasswordErrorMessage }}</div>
-          <div class="action-row">
-            <button type="button" class="secondary-button" :disabled="isResettingPassword" @click="closeResetPasswordModal">ยกเลิก</button>
-            <button type="button" class="primary-button" :disabled="isResettingPassword" @click="submitResetPassword">
-              {{ isResettingPassword ? 'กำลังรีเซ็ต...' : 'รีเซ็ตรหัสผ่าน' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script>
 import MainNavbar from './MainNavbar.vue';
-import { adminResetUserPassword, createAdminUser, deleteAdminUser, fetchAdminUsers, getCurrentUser, updateAdminUserAccess } from '@/utils/auth';
+import { createAdminUser, deleteAdminUser, fetchAdminUsers, getCurrentUser, updateAdminUserAccess } from '@/utils/auth';
 import { fetchAdminPaymentSettings, fetchAdminPaymentSlips, readFileAsDataUrl, updateAdminPaymentSettings } from '@/utils/payment';
 
 export default {
@@ -302,14 +268,6 @@ export default {
       audioContext: null,
       showSlipModal: false,
       selectedSlip: null,
-      showResetPasswordModal: false,
-      resetPasswordUser: null,
-      resetPasswordForm: {
-        newPassword: '',
-        confirmNewPassword: '',
-      },
-      resetPasswordErrorMessage: '',
-      isResettingPassword: false,
     };
   },
   created() {
@@ -614,50 +572,6 @@ export default {
     closeSlipModal() {
       this.showSlipModal = false;
       this.selectedSlip = null;
-    },
-    openResetPasswordModal(user) {
-      this.resetPasswordUser = user;
-      this.resetPasswordForm = {
-        newPassword: '',
-        confirmNewPassword: '',
-      };
-      this.resetPasswordErrorMessage = '';
-      this.showResetPasswordModal = true;
-    },
-    closeResetPasswordModal() {
-      this.showResetPasswordModal = false;
-      this.resetPasswordUser = null;
-      this.resetPasswordForm = {
-        newPassword: '',
-        confirmNewPassword: '',
-      };
-      this.resetPasswordErrorMessage = '';
-    },
-    async submitResetPassword() {
-      if (!this.resetPasswordForm.newPassword || !this.resetPasswordForm.confirmNewPassword) {
-        this.resetPasswordErrorMessage = 'กรุณากรอกข้อมูลให้ครบ';
-        return;
-      }
-
-      if (this.resetPasswordForm.newPassword !== this.resetPasswordForm.confirmNewPassword) {
-        this.resetPasswordErrorMessage = 'รหัสผ่านใหม่ไม่ตรงกัน';
-        return;
-      }
-
-      try {
-        this.isResettingPassword = true;
-        this.resetPasswordErrorMessage = '';
-        await adminResetUserPassword({
-          userId: this.resetPasswordUser.id,
-          newPassword: this.resetPasswordForm.newPassword,
-        });
-        this.closeResetPasswordModal();
-        alert('รีเซ็ตรหัสผ่านสำเร็จ');
-      } catch (error) {
-        this.resetPasswordErrorMessage = error.message || 'ไม่สามารถรีเซ็ตรหัสผ่านได้';
-      } finally {
-        this.isResettingPassword = false;
-      }
     },
     resetCreateForm() {
       this.createForm = {

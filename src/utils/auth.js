@@ -322,27 +322,7 @@ export async function changeUserPassword({ currentPassword, newPassword }) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || 'Failed to change password');
-  }
-
-  return data.user;
-}
-
-export async function adminResetUserPassword({ userId, newPassword }) {
-  const token = getAuthToken();
-  const response = await fetch('/api/admin/users', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ userId, newPassword }),
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to reset password');
+    throw new Error(data.error || 'ไม่สามารถเปลี่ยนรหัสผ่านได้');
   }
 
   return data.user;

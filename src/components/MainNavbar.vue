@@ -157,11 +157,6 @@ export default {
         return;
       }
 
-      if (this.passwordForm.newPassword.length < 6) {
-        this.passwordErrorMessage = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-        return;
-      }
-
       try {
         this.isChangingPassword = true;
         this.passwordErrorMessage = '';

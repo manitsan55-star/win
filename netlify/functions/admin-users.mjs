@@ -1,5 +1,4 @@
 import {
-  adminResetPassword,
   createUserByAdmin,
   deleteUserById,
   errorResponse,
@@ -56,17 +55,6 @@ export default async (request) => {
       });
 
       return jsonResponse({ success: true });
-    }
-
-    if (request.method === 'PUT') {
-      const body = await readJsonBody(request);
-      const user = await adminResetPassword({
-        userId: body.userId,
-        newPassword: body.newPassword,
-        actorId: admin.id,
-      });
-
-      return jsonResponse({ user });
     }
 
     return jsonResponse({ error: 'Method not allowed' }, 405);

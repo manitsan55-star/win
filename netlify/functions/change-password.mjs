@@ -1,5 +1,4 @@
-import { errorResponse, getUserFromRequest, jsonResponse, readJsonBody } from './auth-shared.mjs';
-import { changePassword } from './auth-shared.mjs';
+import { changePassword, errorResponse, getUserFromRequest, jsonResponse } from './auth-shared.mjs';
 
 export default async (request) => {
   if (request.method !== 'POST') {
@@ -8,7 +7,12 @@ export default async (request) => {
 
   try {
     const user = await getUserFromRequest(request);
-    const body = await readJsonBody(request);
+    const body = await request.json();
+
+    if (!body.currentPassword || !body.newPassword) {
+      return jsonResponse({ error: 'Missing required fields' }, 400);
+    }
+
     const updatedUser = await changePassword({
       userId: user.id,
       currentPassword: body.currentPassword,
