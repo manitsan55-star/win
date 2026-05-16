@@ -17,7 +17,13 @@ export default {
     };
   },
   async created() {
-    await this.checkSession();
+    if (getAuthToken()) {
+      try {
+        await restoreSession();
+      } catch (error) {
+        console.error('Failed to restore session on app load:', error);
+      }
+    }
   },
   mounted() {
     window.addEventListener('focus', this.handleWindowFocus);

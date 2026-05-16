@@ -50,8 +50,8 @@
         </form>
       </div>
     </div>
-    <div v-else class="user-info desktop-only">
-      <button @click="$emit('open-auth-modal', 'login')" class="login-button">เข้าสู่ระบบ</button>
+    <div v-else class="user-info">
+      <button class="login-button desktop-only" @click="$emit('open-auth-modal', 'login')">เข้าสู่ระบบ</button>
     </div>
   </nav>
 </template>

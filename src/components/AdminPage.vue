@@ -644,11 +644,6 @@ export default {
         return;
       }
 
-      if (this.resetPasswordForm.newPassword.length < 6) {
-        this.resetPasswordErrorMessage = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-        return;
-      }
-
       try {
         this.isResettingPassword = true;
         this.resetPasswordErrorMessage = '';
