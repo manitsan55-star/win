@@ -246,7 +246,7 @@ export function logoutUser(options = {}) {
   emitAuthChanged({ reason: options.reason || null });
 }
 
-async function requestAdmin(path, options = {}) {
+async function requestAdmin(path = '', options = {}) {
   const token = getAuthToken();
   const headers = {
     'Content-Type': 'application/json',
