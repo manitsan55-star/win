@@ -9,9 +9,6 @@
       <button v-if="!username" type="button" class="mobile-login-button mobile-only" @click="$emit('open-auth-modal', 'login')">เข้าสู่ระบบ</button>
     </div>
     <div v-if="username" class="user-info">
-      <button type="button" class="mobile-user-toggle desktop-only" @click="toggleMobileDetails">
-        {{ isMobileDetailsOpen ? 'ซ่อนข้อมูล' : 'แสดงข้อมูล' }}
-      </button>
       <div class="user-panel" :class="{ 'mobile-open': isMobileDetailsOpen }">
         <router-link v-if="isAdminUser" to="/admin" class="admin-link">จัดการผู้ใช้</router-link>
         <div class="user-meta">
@@ -140,6 +137,16 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .user-panel {
+    display: none;
+  }
+
+  .user-panel.mobile-open {
+    display: flex;
+  }
 }
 
 .user-meta {
@@ -275,10 +282,6 @@ export default {
     width: auto;
   }
 
-  .desktop-only {
-    display: none;
-  }
-
   .mobile-only {
     display: inline-flex;
     align-items: center;
@@ -292,14 +295,8 @@ export default {
   }
 
   .user-panel {
-    display: none;
-    width: 100%;
     flex-direction: column;
     gap: 0.5rem;
-  }
-
-  .user-panel.mobile-open {
-    display: flex;
   }
 
   .user-meta {
