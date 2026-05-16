@@ -21,7 +21,33 @@
             <span v-if="accessStatusText" :class="statusClass">{{ accessStatusText }}</span>
           </div>
         </div>
+        <button @click="openPasswordModal" class="change-password-button">เปลี่ยนรหัสผ่าน</button>
         <button @click="logout" class="logout-button">ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <div v-if="showPasswordModal" class="modal-overlay" @click="closePasswordModal">
+      <div class="modal-card" @click.stop>
+        <h3>เปลี่ยนรหัสผ่าน</h3>
+        <form @submit.prevent="submitPasswordChange" class="auth-form">
+          <div class="form-group">
+            <label for="current-password">รหัสผ่านเดิม</label>
+            <input id="current-password" v-model="passwordForm.currentPassword" type="password" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label for="new-password">รหัสผ่านใหม่</label>
+            <input id="new-password" v-model="passwordForm.newPassword" type="password" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label for="confirm-new-password">ยืนยันรหัสผ่านใหม่</label>
+            <input id="confirm-new-password" v-model="passwordForm.confirmNewPassword" type="password" class="form-control" />
+          </div>
+          <div v-if="passwordErrorMessage" class="error-message">{{ passwordErrorMessage }}</div>
+          <div class="action-row">
+            <button type="button" class="secondary-button" :disabled="isChangingPassword" @click="closePasswordModal">ยกเลิก</button>
+            <button type="submit" class="primary-button" :disabled="isChangingPassword">{{ isChangingPassword ? 'กำลังเปลี่ยน...' : 'เปลี่ยนรหัสผ่าน' }}</button>
+          </div>
+        </form>
       </div>
     </div>
     <div v-else class="user-info desktop-only">
@@ -31,7 +57,7 @@
 </template>
 
 <script>
-import { formatExpireDate, getCurrentUser, getUserAccessState, logoutUser } from '@/utils/auth';
+import { changeUserPassword, formatExpireDate, getCurrentUser, getUserAccessState, logoutUser } from '@/utils/auth';
 
 export default {
   name: "NavbarComponent",
@@ -45,6 +71,14 @@ export default {
       accessStatusText: '',
       accessStatusClass: '',
       isMobileDetailsOpen: false,
+      showPasswordModal: false,
+      passwordForm: {
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: '',
+      },
+      passwordErrorMessage: '',
+      isChangingPassword: false,
     };
   },
   created() {
@@ -93,7 +127,56 @@ export default {
     },
     toggleMobileDetails() {
       this.isMobileDetailsOpen = !this.isMobileDetailsOpen;
-    }
+    },
+    openPasswordModal() {
+      this.showPasswordModal = true;
+      this.passwordForm = {
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: '',
+      };
+      this.passwordErrorMessage = '';
+    },
+    closePasswordModal() {
+      this.showPasswordModal = false;
+      this.passwordForm = {
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: '',
+      };
+      this.passwordErrorMessage = '';
+    },
+    async submitPasswordChange() {
+      if (!this.passwordForm.currentPassword || !this.passwordForm.newPassword || !this.passwordForm.confirmNewPassword) {
+        this.passwordErrorMessage = 'กรุณากรอกข้อมูลให้ครบ';
+        return;
+      }
+
+      if (this.passwordForm.newPassword !== this.passwordForm.confirmNewPassword) {
+        this.passwordErrorMessage = 'รหัสผ่านใหม่ไม่ตรงกัน';
+        return;
+      }
+
+      if (this.passwordForm.newPassword.length < 6) {
+        this.passwordErrorMessage = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+        return;
+      }
+
+      try {
+        this.isChangingPassword = true;
+        this.passwordErrorMessage = '';
+        await changeUserPassword({
+          currentPassword: this.passwordForm.currentPassword,
+          newPassword: this.passwordForm.newPassword,
+        });
+        this.closePasswordModal();
+        alert('เปลี่ยนรหัสผ่านสำเร็จ');
+      } catch (error) {
+        this.passwordErrorMessage = error.message || 'ไม่สามารถเปลี่ยนรหัสผ่านได้';
+      } finally {
+        this.isChangingPassword = false;
+      }
+    },
   },
   computed: {
     statusClass() {
@@ -228,6 +311,114 @@ export default {
   border-radius: 5px;
   cursor: pointer;
   font-size: 0.85rem;
+}
+
+.change-password-button {
+  border: none;
+  background-color: #6b7280;
+  color: white;
+  padding: 0.3em 0.6em;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.change-password-button:hover {
+  background-color: #4b5563;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-card h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.form-control {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.action-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.primary-button {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.primary-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.secondary-button {
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.secondary-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
 }
 
 .payment-button {

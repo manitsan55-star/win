@@ -193,6 +193,13 @@
               <td>{{ formatDate(user.createdAt) }}</td>
               <td>
                 <button
+                  @click="openResetPasswordModal(user)"
+                  class="reset-password-button"
+                  :disabled="isBusy(user.id) || isCurrentUser(user.id)"
+                >
+                  รีเซ็ตรหัสผ่าน
+                </button>
+                <button
                   @click="deleteUser(user)"
                   class="delete-button"
                   :disabled="isBusy(user.id) || isCurrentUser(user.id)"
@@ -225,12 +232,39 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showResetPasswordModal" class="slip-modal-overlay" @click="closeResetPasswordModal">
+      <div class="slip-modal-content" @click.stop>
+        <div class="slip-modal-header">
+          <h3>รีเซ็ตรหัสผ่าน</h3>
+          <button type="button" class="slip-modal-close" @click="closeResetPasswordModal">✕</button>
+        </div>
+        <div class="slip-modal-body">
+          <p><strong>ผู้ใช้:</strong> {{ resetPasswordUser?.username }}</p>
+          <div class="form-group">
+            <label for="new-password">รหัสผ่านใหม่</label>
+            <input id="new-password" v-model="resetPasswordForm.newPassword" type="password" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label for="confirm-new-password">ยืนยันรหัสผ่านใหม่</label>
+            <input id="confirm-new-password" v-model="resetPasswordForm.confirmNewPassword" type="password" class="form-input" />
+          </div>
+          <div v-if="resetPasswordErrorMessage" class="error-message">{{ resetPasswordErrorMessage }}</div>
+          <div class="action-row">
+            <button type="button" class="secondary-button" :disabled="isResettingPassword" @click="closeResetPasswordModal">ยกเลิก</button>
+            <button type="button" class="primary-button" :disabled="isResettingPassword" @click="submitResetPassword">
+              {{ isResettingPassword ? 'กำลังรีเซ็ต...' : 'รีเซ็ตรหัสผ่าน' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import MainNavbar from './MainNavbar.vue';
-import { createAdminUser, deleteAdminUser, fetchAdminUsers, getCurrentUser, updateAdminUserAccess } from '@/utils/auth';
+import { adminResetUserPassword, createAdminUser, deleteAdminUser, fetchAdminUsers, getCurrentUser, updateAdminUserAccess } from '@/utils/auth';
 import { fetchAdminPaymentSettings, fetchAdminPaymentSlips, readFileAsDataUrl, updateAdminPaymentSettings } from '@/utils/payment';
 
 export default {
@@ -268,6 +302,14 @@ export default {
       audioContext: null,
       showSlipModal: false,
       selectedSlip: null,
+      showResetPasswordModal: false,
+      resetPasswordUser: null,
+      resetPasswordForm: {
+        newPassword: '',
+        confirmNewPassword: '',
+      },
+      resetPasswordErrorMessage: '',
+      isResettingPassword: false,
     };
   },
   created() {
@@ -572,6 +614,55 @@ export default {
     closeSlipModal() {
       this.showSlipModal = false;
       this.selectedSlip = null;
+    },
+    openResetPasswordModal(user) {
+      this.resetPasswordUser = user;
+      this.resetPasswordForm = {
+        newPassword: '',
+        confirmNewPassword: '',
+      };
+      this.resetPasswordErrorMessage = '';
+      this.showResetPasswordModal = true;
+    },
+    closeResetPasswordModal() {
+      this.showResetPasswordModal = false;
+      this.resetPasswordUser = null;
+      this.resetPasswordForm = {
+        newPassword: '',
+        confirmNewPassword: '',
+      };
+      this.resetPasswordErrorMessage = '';
+    },
+    async submitResetPassword() {
+      if (!this.resetPasswordForm.newPassword || !this.resetPasswordForm.confirmNewPassword) {
+        this.resetPasswordErrorMessage = 'กรุณากรอกข้อมูลให้ครบ';
+        return;
+      }
+
+      if (this.resetPasswordForm.newPassword !== this.resetPasswordForm.confirmNewPassword) {
+        this.resetPasswordErrorMessage = 'รหัสผ่านใหม่ไม่ตรงกัน';
+        return;
+      }
+
+      if (this.resetPasswordForm.newPassword.length < 6) {
+        this.resetPasswordErrorMessage = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+        return;
+      }
+
+      try {
+        this.isResettingPassword = true;
+        this.resetPasswordErrorMessage = '';
+        await adminResetUserPassword({
+          userId: this.resetPasswordUser.id,
+          newPassword: this.resetPasswordForm.newPassword,
+        });
+        this.closeResetPasswordModal();
+        alert('รีเซ็ตรหัสผ่านสำเร็จ');
+      } catch (error) {
+        this.resetPasswordErrorMessage = error.message || 'ไม่สามารถรีเซ็ตรหัสผ่านได้';
+      } finally {
+        this.isResettingPassword = false;
+      }
     },
     resetCreateForm() {
       this.createForm = {
@@ -907,6 +998,88 @@ h2 {
 .slip-modal-info p {
   margin: 0.5rem 0;
   color: #374151;
+}
+
+.slip-modal-body .form-group {
+  margin-top: 1rem;
+}
+
+.slip-modal-body .form-group label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.slip-modal-body .form-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.slip-modal-body .error-message {
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.slip-modal-body .action-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.slip-modal-body .primary-button {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.slip-modal-body .primary-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.slip-modal-body .secondary-button {
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.slip-modal-body .secondary-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.reset-password-button {
+  margin-right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.reset-password-button:hover {
+  background-color: #4b5563;
+}
+
+.reset-password-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
 }
 
 .create-user-grid {

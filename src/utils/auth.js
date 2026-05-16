@@ -307,3 +307,43 @@ export async function deleteAdminUser(userId) {
     body: JSON.stringify({ userId }),
   });
 }
+
+export async function changeUserPassword({ currentPassword, newPassword }) {
+  const token = getAuthToken();
+  const response = await fetch('/api/auth/change-password', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to change password');
+  }
+
+  return data.user;
+}
+
+export async function adminResetUserPassword({ userId, newPassword }) {
+  const token = getAuthToken();
+  const response = await fetch('/api/admin/users', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ userId, newPassword }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to reset password');
+  }
+
+  return data.user;
+}

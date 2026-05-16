@@ -42,3 +42,8 @@
   from = "/api/admin/payment-slips"
   to = "/.netlify/functions/admin-payment-slips"
   status = 200
+
+[[redirects]]
+  from = "/api/auth/change-password"
+  to = "/.netlify/functions/change-password"
+  status = 200

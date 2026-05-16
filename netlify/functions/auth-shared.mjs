@@ -644,6 +644,52 @@ export async function deleteUserById({ userId, actorId }) {
   await removeUsernameFromIndex(user.username);
 }
 
+export async function changePassword({ userId, currentPassword, newPassword }) {
+  const user = await findUserById(userId);
+
+  if (!user) {
+    throw new Error('user_not_found');
+  }
+
+  const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+
+  if (!isPasswordValid) {
+    throw new Error('invalid_password');
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  const updatedUser = {
+    ...user,
+    password: hashedPassword,
+  };
+
+  await saveUser(updatedUser);
+  return sanitizeUser(updatedUser);
+}
+
+export async function adminResetPassword({ userId, newPassword, actorId }) {
+  const user = await findUserById(userId);
+
+  if (!user) {
+    throw new Error('user_not_found');
+  }
+
+  if (user.id === actorId) {
+    throw new Error('cannot_reset_own_password');
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  const updatedUser = {
+    ...user,
+    password: hashedPassword,
+  };
+
+  await saveUser(updatedUser);
+  return sanitizeUser(updatedUser);
+}
+
 export function sanitizeUsers(users) {
   return users
     .map((user) => sanitizeUser(user))
@@ -721,6 +767,14 @@ export function errorResponse(error) {
 
   if (error.message === 'last_admin') {
     return jsonResponse({ error: 'ต้องมี admin อย่างน้อย 1 คน' }, 400);
+  }
+
+  if (error.message === 'invalid_password') {
+    return jsonResponse({ error: 'รหัสผ่านเดิมไม่ถูกต้อง' }, 400);
+  }
+
+  if (error.message === 'cannot_reset_own_password') {
+    return jsonResponse({ error: 'ไม่สามารถรีเซ็ตรหัสผ่านของตัวเองได้' }, 400);
   }
 
   return jsonResponse({ error: error.message || 'Internal server error' }, 400);
