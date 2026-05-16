@@ -21,9 +21,12 @@
             <span v-if="accessStatusText" :class="statusClass">{{ accessStatusText }}</span>
           </div>
         </div>
-        <button @click="openPasswordModal" class="change-password-button">เปลี่ยนรหัสผ่าน</button>
+        <button v-if="!isAdminUser" @click="openPasswordModal" class="change-password-button">เปลี่ยนรหัสผ่าน</button>
         <button @click="logout" class="logout-button">ออกจากระบบ</button>
       </div>
+    </div>
+    <div v-else class="user-info">
+      <button class="login-button desktop-only" @click="$emit('open-auth-modal', 'login')">เข้าสู่ระบบ</button>
     </div>
 
     <div v-if="showPasswordModal" class="modal-overlay" @click="closePasswordModal">
@@ -49,9 +52,6 @@
           </div>
         </form>
       </div>
-    </div>
-    <div v-else class="user-info">
-      <button class="login-button desktop-only" @click="$emit('open-auth-modal', 'login')">เข้าสู่ระบบ</button>
     </div>
   </nav>
 </template>
