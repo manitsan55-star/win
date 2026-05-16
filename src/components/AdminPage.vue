@@ -133,7 +133,7 @@
               <td>{{ user.username }}</td>
               <td>
                 <div v-if="getLatestSlipForUser(user)" class="user-slip-cell">
-                  <img :src="getLatestSlipForUser(user).imageData" :alt="`สลิปของ ${user.username}`" class="user-slip-image" />
+                  <img :src="getLatestSlipForUser(user).imageData" :alt="`สลิปของ ${user.username}`" class="user-slip-image" @click="openSlipModal(getLatestSlipForUser(user))" />
                   <div class="user-slip-meta">
                     <span>{{ formatDate(getLatestSlipForUser(user).createdAt) }}</span>
                   </div>
@@ -209,6 +209,22 @@
         ยังไม่มีผู้ใช้ในระบบ
       </div>
     </div>
+
+    <div v-if="showSlipModal" class="slip-modal-overlay" @click="closeSlipModal">
+      <div class="slip-modal-content" @click.stop>
+        <div class="slip-modal-header">
+          <h3>สลิปการโอนเงิน</h3>
+          <button type="button" class="slip-modal-close" @click="closeSlipModal">✕</button>
+        </div>
+        <div class="slip-modal-body">
+          <img v-if="selectedSlip" :src="selectedSlip.imageData" alt="สลิป" class="slip-modal-image" />
+          <div v-if="selectedSlip" class="slip-modal-info">
+            <p><strong>ผู้ใช้:</strong> {{ selectedSlip.username }}</p>
+            <p><strong>เวลา:</strong> {{ formatDate(selectedSlip.createdAt) }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -250,6 +266,8 @@ export default {
       slipPollingInterval: null,
       soundEnabled: true,
       audioContext: null,
+      showSlipModal: false,
+      selectedSlip: null,
     };
   },
   created() {
@@ -547,6 +565,14 @@ export default {
     toggleSound() {
       this.soundEnabled = !this.soundEnabled;
     },
+    openSlipModal(slip) {
+      this.selectedSlip = slip;
+      this.showSlipModal = true;
+    },
+    closeSlipModal() {
+      this.showSlipModal = false;
+      this.selectedSlip = null;
+    },
     resetCreateForm() {
       this.createForm = {
         username: '',
@@ -792,6 +818,95 @@ h2 {
 
 .user-slip-empty {
   color: #6b7280;
+}
+
+.user-slip-image {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  border-radius: 8px;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.user-slip-image:hover {
+  transform: scale(1.05);
+  border-color: #2563eb;
+}
+
+.slip-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.slip-modal-content {
+  background-color: white;
+  border-radius: 12px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.slip-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.slip-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #111827;
+}
+
+.slip-modal-close {
+  border: none;
+  background-color: transparent;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+}
+
+.slip-modal-close:hover {
+  color: #111827;
+}
+
+.slip-modal-body {
+  padding: 1.5rem;
+}
+
+.slip-modal-image {
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 8px;
+  background-color: white;
+}
+
+.slip-modal-info {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.slip-modal-info p {
+  margin: 0.5rem 0;
+  color: #374151;
 }
 
 .create-user-grid {
