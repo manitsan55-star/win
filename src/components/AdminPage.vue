@@ -951,6 +951,103 @@ h2 {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
+.modal-card h3 {
+  margin: 0 0 20px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.modal-card .auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-card .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-card .form-group label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.modal-card .form-control {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.modal-card .form-control:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-card .error-message {
+  color: #ef4444;
+  font-size: 0.875rem;
+  background-color: #fef2f2;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+}
+
+.modal-card .action-row {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.modal-card .primary-button {
+  padding: 10px 20px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.modal-card .primary-button:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.modal-card .primary-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.modal-card .secondary-button {
+  padding: 10px 20px;
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.modal-card .secondary-button:hover:not(:disabled) {
+  background-color: #4b5563;
+}
+
+.modal-card .secondary-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
 .slip-modal-content {
   background-color: white;
   border-radius: 12px;
