@@ -40,6 +40,10 @@ function sanitizeSlipRecord(slip) {
     username: typeof slip.username === 'string' ? slip.username : '',
     imageData: typeof slip.imageData === 'string' ? slip.imageData : '',
     createdAt: typeof slip.createdAt === 'string' ? slip.createdAt : new Date().toISOString(),
+    ocrAmount: typeof slip.ocrAmount === 'string' ? slip.ocrAmount : '',
+    ocrTime: typeof slip.ocrTime === 'string' ? slip.ocrTime : '',
+    ocrConfidence: typeof slip.ocrConfidence === 'number' ? slip.ocrConfidence : 0,
+    ocrRawText: typeof slip.ocrRawText === 'string' ? slip.ocrRawText : '',
   };
 }
 
