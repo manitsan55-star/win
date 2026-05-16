@@ -7,7 +7,7 @@
 <script>
 import { getAuthToken, restoreSession } from '@/utils/auth';
 
-const SESSION_CHECK_INTERVAL_MS = 2000;
+const SESSION_CHECK_INTERVAL_MS = 1000;
 
 export default {
   name: 'App',
@@ -30,11 +30,16 @@ export default {
   mounted() {
     window.addEventListener('focus', this.handleWindowFocus);
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
+    // Mobile-specific events
+    document.addEventListener('resume', this.handleMobileResume);
+    document.addEventListener('pageshow', this.handlePageShow);
     this.sessionCheckIntervalId = window.setInterval(this.checkSession, SESSION_CHECK_INTERVAL_MS);
   },
   beforeUnmount() {
     window.removeEventListener('focus', this.handleWindowFocus);
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+    document.removeEventListener('resume', this.handleMobileResume);
+    document.removeEventListener('pageshow', this.handlePageShow);
 
     if (this.sessionCheckIntervalId) {
       window.clearInterval(this.sessionCheckIntervalId);
@@ -81,6 +86,13 @@ export default {
       if (document.visibilityState === 'visible') {
         await this.checkSession();
       }
+    },
+    async handleMobileResume() {
+      await this.checkSession();
+    },
+    async handlePageShow() {
+      // Check session when page is shown (especially when navigating back)
+      await this.checkSession();
     },
   }
 }
