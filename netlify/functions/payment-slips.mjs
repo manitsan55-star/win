@@ -49,7 +49,23 @@ export default async (request) => {
   try {
     const user = await getUserFromRequest(request);
     const body = await readJsonBody(request);
-    const ocrResult = await processOCR(body.imageData);
+
+    let ocrResult = {
+      ocrAmount: '',
+      ocrTime: '',
+      ocrConfidence: 0,
+      ocrRawText: '',
+    };
+
+    try {
+      ocrResult = await Promise.race([
+        processOCR(body.imageData),
+        new Promise((resolve) => setTimeout(() => resolve(ocrResult), 8000)),
+      ]);
+    } catch (ocrError) {
+      console.error('OCR processing failed, continuing without OCR:', ocrError);
+    }
+
     const slip = await createPaymentSlip({
       user,
       imageData: body.imageData,
