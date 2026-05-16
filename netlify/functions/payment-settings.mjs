@@ -1,4 +1,4 @@
-import { errorResponse, getUserFromRequest, jsonResponse } from './auth-shared.mjs';
+import { errorResponse, jsonResponse } from './auth-shared.mjs';
 import { getPaymentSettings } from './payment-settings-shared.mjs';
 
 export default async (request) => {
@@ -7,9 +7,8 @@ export default async (request) => {
   }
 
   try {
-    const user = await getUserFromRequest(request);
     const settings = await getPaymentSettings();
-    return jsonResponse({ settings, user });
+    return jsonResponse({ settings });
   } catch (error) {
     return errorResponse(error);
   }

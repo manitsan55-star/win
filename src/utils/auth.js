@@ -55,15 +55,7 @@ async function requestAuth(path, payload, token) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const error = new Error(data.error || 'Authentication failed');
-
-    // Handle session_replaced error immediately
-    if (error.message === 'session_replaced') {
-      setAuthNotice('บัญชีนี้มีการเข้าสู่ระบบจากอุปกรณ์อื่นแล้ว');
-      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
-    }
-
-    throw error;
+    throw new Error(data.error || 'Authentication failed');
   }
 
   return data;
@@ -239,25 +231,9 @@ export async function restoreSession() {
     }
   }
 
-  // Handle session_replaced error (logged in from another device)
-  if (lastError?.message === 'session_replaced') {
-    setAuthNotice('บัญชีนี้มีการเข้าสู่ระบบจากอุปกรณ์อื่นแล้ว');
-    logoutUser({ preserveNotice: true, reason: 'session_replaced' });
-    // Don't throw error - let session check continue
-    return null;
-  }
-
-  // Only logout if it's an Unauthorized error (invalid token)
-  // For other errors (network, server down), keep the session
-  if (lastError?.message === 'Unauthorized') {
-    setAuthNotice(lastError?.message || 'Unauthorized');
-    logoutUser({ preserveNotice: true });
-    throw lastError || new Error('Unauthorized');
-  }
-
-  // For other errors, just log but don't logout
-  console.error('Failed to restore session (keeping local session):', lastError);
-  return getCurrentUser();
+  setAuthNotice(lastError?.message || 'Unauthorized');
+  logoutUser({ preserveNotice: true });
+  throw lastError || new Error('Unauthorized');
 }
 
 export function logoutUser(options = {}) {
@@ -289,9 +265,6 @@ async function requestAdmin(path, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    if (data.error === 'session_replaced') {
-      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
-    }
     throw new Error(data.error || 'Admin request failed');
   }
 
@@ -349,9 +322,6 @@ export async function changeUserPassword({ currentPassword, newPassword }) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    if (data.error === 'session_replaced') {
-      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
-    }
     throw new Error(data.error || 'Failed to change password');
   }
 
@@ -372,9 +342,6 @@ export async function adminResetUserPassword({ userId, newPassword }) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    if (data.error === 'session_replaced') {
-      logoutUser({ preserveNotice: true, reason: 'session_replaced' });
-    }
     throw new Error(data.error || 'Failed to reset password');
   }
 
