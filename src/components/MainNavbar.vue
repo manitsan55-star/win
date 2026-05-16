@@ -3,9 +3,12 @@
     <div class="navbar-brand">
       <span class="logo">WINWAI</span>
       <button type="button" class="payment-button" @click="$emit('open-payment-modal')">วิธีชำระเงิน</button>
+      <button v-if="username" type="button" class="mobile-user-toggle mobile-only" @click="toggleMobileDetails">
+        {{ isMobileDetailsOpen ? 'ซ่อนข้อมูล' : 'แสดงข้อมูล' }}
+      </button>
     </div>
     <div v-if="username" class="user-info">
-      <button type="button" class="mobile-user-toggle" @click="toggleMobileDetails">
+      <button type="button" class="mobile-user-toggle desktop-only" @click="toggleMobileDetails">
         {{ isMobileDetailsOpen ? 'ซ่อนข้อมูล' : 'แสดงข้อมูล' }}
       </button>
       <div class="user-panel" :class="{ 'mobile-open': isMobileDetailsOpen }">
@@ -201,6 +204,14 @@ export default {
   cursor: pointer;
 }
 
+.desktop-only {
+  display: none;
+}
+
+.mobile-only {
+  display: none;
+}
+
 .payment-button {
   border: none;
   background-color: #2563eb;
@@ -240,27 +251,33 @@ export default {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .navbar-brand {
     font-size: 1.2em;
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .payment-button {
     width: auto;
   }
-  
+
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .user-info {
     margin-top: 0.5em;
     flex-direction: column;
     width: 100%;
-  }
-
-  .mobile-user-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
 
   .user-panel {
@@ -281,6 +298,17 @@ export default {
 
   .meta-detail-row {
     justify-content: center;
+  }
+}
+
+@media (min-width: 769px) {
+  .desktop-only {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .mobile-only {
+    display: none;
   }
 }
 </style>
