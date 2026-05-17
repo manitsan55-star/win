@@ -28,7 +28,7 @@
     </div>
     <div :class="containerClass">
       <div v-if="lines.length < 2">
-        <div :class="summaryClass">
+        <div v-if="pakLakResults.length > 0" class="paklak-container">
           <div v-for="(result, index) in pakLakResults" :key="index" class="paklak-row">
             <div class="summary-box">
               <h3>ปักหลักสิบ ({{ result.digit }})</h3>
@@ -87,8 +87,10 @@
               </div>
             </div>
           </div>
+        </div>
 
-          <div v-if="pakLakResults.length === 0" class="summary-box">
+        <div v-if="pakLakResults.length === 0" :class="summaryClass">
+          <div class="summary-box">
             <h3>2 ตัวปกติ</h3>
             <button @click="copyDoubleSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -1187,6 +1189,11 @@ h3 {
 
 .paklak-toggle-button:hover {
   background-color: #7c3aed;
+}
+
+.paklak-container {
+  display: grid;
+  gap: 1em;
 }
 
 .paklak-row {
