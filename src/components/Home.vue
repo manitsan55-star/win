@@ -794,6 +794,7 @@ export default {
         return;
       }
 
+      this.pakLakResults = [];
       await this.countWin()
       this.updateSummary()
     },
@@ -1189,9 +1190,6 @@ h3 {
 }
 
 .paklak-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1em;
   margin-bottom: 1em;
 }
 
