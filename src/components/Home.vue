@@ -639,7 +639,7 @@ export default {
         }
 
         // ปักหลักหน่วย 2 ตัว
-        for (let x = 1; x <= 9; x++) {
+        for (let x = 0; x <= 9; x++) {
           if (x !== digitNum) {
             unit.push(`${x}${digitNum}`);
           }
@@ -683,7 +683,7 @@ export default {
         }
 
         // ปักหลักหน่วย 2 ตัว รวมเลขหามตอง
-        for (let x = 1; x <= 9; x++) {
+        for (let x = 0; x <= 9; x++) {
           unit.push(`${x}${digitNum}`);
         }
 
