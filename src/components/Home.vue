@@ -831,9 +831,9 @@ export default {
         result = this.getDoubleSummary(line);
       }
 
-      const filteredSummary = Array.isArray(result) 
-        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('-')
-        : result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n');
+      const filteredSummary = all
+        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n')
+        : result.filter(number => !this.highlightedNumbers.includes(number)).join('-');
       navigator.clipboard.writeText(filteredSummary).then(() => {
         this.showCopyNotification = true;
 
@@ -852,9 +852,9 @@ export default {
         result = this.getDoubleIncludeDoublesSummary(line);
       }
 
-      const filteredSummary = Array.isArray(result) 
-        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('-')
-        : result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n');
+      const filteredSummary = all
+        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n')
+        : result.filter(number => !this.highlightedNumbers.includes(number)).join('-');
       navigator.clipboard.writeText(filteredSummary).then(() => {
         this.showCopyNotification = true;
 
@@ -873,9 +873,9 @@ export default {
         result = this.getTripleSummary(line);
       }
 
-      const filteredSummary = Array.isArray(result) 
-        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('-')
-        : result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n');
+      const filteredSummary = all
+        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n')
+        : result.filter(number => !this.highlightedNumbers.includes(number)).join('-');
       navigator.clipboard.writeText(filteredSummary).then(() => {
         this.showCopyNotification = true;
 
@@ -894,9 +894,9 @@ export default {
         result = this.getTripleIncludeDoublesSummary(line);
       }
 
-      const filteredSummary = Array.isArray(result) 
-        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('-')
-        : result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n');
+      const filteredSummary = all
+        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n')
+        : result.filter(number => !this.highlightedNumbers.includes(number)).join('-');
       navigator.clipboard.writeText(filteredSummary).then(() => {
         this.showCopyNotification = true;
 
@@ -915,9 +915,9 @@ export default {
         result = this.getTripleIncludeHamSummary(line);
       }
 
-      const filteredSummary = Array.isArray(result) 
-        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('-')
-        : result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n');
+      const filteredSummary = all
+        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n')
+        : result.filter(number => !this.highlightedNumbers.includes(number)).join('-');
       navigator.clipboard.writeText(filteredSummary).then(() => {
         this.showCopyNotification = true;
 
