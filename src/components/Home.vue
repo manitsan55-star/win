@@ -632,16 +632,16 @@ export default {
         const unit = [];
 
         // ปักหลักสิบ 2 ตัว
-        for (let x = 1; x <= 9; x++) {
+        for (let x = 0; x <= 9; x++) {
           if (x !== digitNum) {
-            ten.push(`${x}${digitNum}`);
+            ten.push(`${digitNum}${x}`);
           }
         }
 
         // ปักหลักหน่วย 2 ตัว
         for (let x = 1; x <= 9; x++) {
           if (x !== digitNum) {
-            unit.push(`${digitNum}${x}`);
+            unit.push(`${x}${digitNum}`);
           }
         }
 
@@ -678,13 +678,13 @@ export default {
         const unit = [];
 
         // ปักหลักสิบ 2 ตัว รวมเลขหามตอง
-        for (let x = 1; x <= 9; x++) {
-          ten.push(`${x}${digitNum}`);
+        for (let x = 0; x <= 9; x++) {
+          ten.push(`${digitNum}${x}`);
         }
 
         // ปักหลักหน่วย 2 ตัว รวมเลขหามตอง
         for (let x = 1; x <= 9; x++) {
-          unit.push(`${digitNum}${x}`);
+          unit.push(`${x}${digitNum}`);
         }
 
         results.push({
