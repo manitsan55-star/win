@@ -18,9 +18,6 @@
         <button @click="resetAll" class="reset-button">
           เริ่มใหม่
         </button>
-        <button @click="openPakLakModal" class="paklak-button">
-          ปักหลัก
-        </button>
         <button @click="submitData" class="submit-button" :disabled="isCalculationBlocked">
           คำนวณ
         </button>
@@ -29,6 +26,63 @@
     <div :class="containerClass">
       <div v-if="lines.length < 2">
         <div :class="summaryClass">
+          <div class="summary-box">
+            <h3>ปักหลักสิบ</h3>
+            <button @click="copyPakLakToClipboard('ten')" class="copy-button">
+              คัดลอก
+            </button>
+            <div class="summary-content">
+              <div class="summary-text">
+                <span 
+                  v-for="number in getPakLakSummary(inputNumbers).ten" 
+                  :key="number"
+                  :class="summaryNumberClass(number)"
+                  class="summary-number"
+                >
+                  {{ number }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-box">
+            <h3>ปักหลักร้อย</h3>
+            <button @click="copyPakLakToClipboard('hundred')" class="copy-button">
+              คัดลอก
+            </button>
+            <div class="summary-content">
+              <div class="summary-text">
+                <span 
+                  v-for="number in getPakLakSummary(inputNumbers).hundred" 
+                  :key="number"
+                  :class="summaryNumberClass(number)"
+                  class="summary-number"
+                >
+                  {{ number }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-box">
+            <h3>ปักหลักหน่วย</h3>
+            <button @click="copyPakLakToClipboard('unit')" class="copy-button">
+              คัดลอก
+            </button>
+            <div class="summary-content">
+              <div class="summary-text">
+                <span 
+                  v-for="number in getPakLakSummary(inputNumbers).unit" 
+                  :key="number"
+                  :class="summaryNumberClass(number)"
+                  class="summary-number"
+                >
+                  {{ number }}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div class="summary-box">
             <h3>2 ตัวปกติ</h3>
             <button @click="copyDoubleSummaryToClipboard(lines, false)" class="copy-button">
@@ -284,24 +338,12 @@
     :settings="paymentSettings"
     @close="closePaymentModal"
   />
-  <div v-if="showPakLakModal" class="paklak-modal-overlay" @click="closePakLakModal">
-    <div class="paklak-modal-content" @click.stop>
-      <div class="paklak-modal-header">
-        <h3>ปักหลัก</h3>
-        <button type="button" class="paklak-modal-close" @click="closePakLakModal">✕</button>
-      </div>
-      <div class="paklak-modal-body">
-        <PakLakCalculator />
-      </div>
-    </div>
-  </div>
 </template>
 
 
 <script>
 import AuthModal from '@/components/AuthModal.vue';
 import MainNavbar from '@/components/MainNavbar.vue';
-import PakLakCalculator from '@/components/PakLakCalculator.vue';
 import PaymentMethodModal from '@/components/PaymentMethodModal.vue';
 import { consumeAuthNotice, getCurrentUser, getUserAccessState, isAuthenticated } from '@/utils/auth';
 import { fetchPaymentSettings } from '@/utils/payment';
@@ -310,7 +352,6 @@ export default {
   components: {
     AuthModal,
     MainNavbar,
-    PakLakCalculator,
     PaymentMethodModal,
   },
   name: 'HomePage',
@@ -329,7 +370,6 @@ export default {
       isMultiline: false,
       showAuthModal: false,
       showPaymentModal: false,
-      showPakLakModal: false,
       authModalMode: 'login',
       pendingCalculation: false,
       accessNotice: '',
@@ -394,6 +434,52 @@ export default {
       this.lines = this.inputNumbers.split('\n')
       // console.log(this.inputNumbers)
       // console.log(this.lines)
+    },
+    calculatePakLak(input) {
+      const num = input.trim();
+      
+      if (num === '' || num < 0 || num > 9) {
+        return {
+          ten: [],
+          hundred: [],
+          unit: []
+        };
+      }
+
+      // ปักหลักสิบ (หลักกลาง = inputNumber)
+      const ten = [];
+      for (let x = 1; x <= 9; x++) {
+        for (let y = 1; y <= 9; y++) {
+          if (x !== y) {
+            ten.push(`${x}${num}${y}`);
+          }
+        }
+      }
+
+      // ปักหลักร้อย (หลักซ้าย = inputNumber)
+      const hundred = [];
+      for (let x = 1; x <= 9; x++) {
+        for (let y = 1; y <= 9; y++) {
+          if (x !== y) {
+            hundred.push(`${num}${x}${y}`);
+          }
+        }
+      }
+
+      // ปักหลักหน่วย (หลักขวา = inputNumber)
+      const unit = [];
+      for (let x = 1; x <= 9; x++) {
+        for (let y = 1; y <= 9; y++) {
+          if (x !== y) {
+            unit.push(`${x}${y}${num}`);
+          }
+        }
+      }
+
+      return { ten, hundred, unit };
+    },
+    getPakLakSummary(input) {
+      return this.calculatePakLak(input);
     },
     checkMultiline() {
       // this.$nextTick(() => {
@@ -611,6 +697,25 @@ export default {
         console.error('Failed to copy summary: ', err);
       });
     },
+    copyPakLakToClipboard(type) {
+      const pakLakSummary = this.getPakLakSummary(this.inputNumbers);
+      const result = pakLakSummary[type] || [];
+      
+      if (result.length === 0) {
+        return;
+      }
+
+      const filteredSummary = result.filter(number => !this.highlightedNumbers.includes(number)).join('-');
+      navigator.clipboard.writeText(filteredSummary).then(() => {
+        this.showCopyNotification = true;
+
+        setTimeout(() => {
+          this.showCopyNotification = false;
+        }, 3000);
+      }, (err) => {
+        console.error('Failed to copy PakLak summary: ', err);
+      });
+    },
     resetAll() {
       this.lines = [];
       this.selectedNumber = [];
@@ -674,12 +779,6 @@ export default {
     },
     closePaymentModal() {
       this.showPaymentModal = false;
-    },
-    openPakLakModal() {
-      this.showPakLakModal = true;
-    },
-    closePakLakModal() {
-      this.showPakLakModal = false;
     },
     async handleAuthSuccess() {
       this.showAuthModal = false;
@@ -1033,81 +1132,6 @@ h3 {
   max-width: 600px;
   margin: auto;
   padding: 10px;
-}
-
-.paklak-button {
-  padding: 0.5em 1em;
-  border: none;
-  border-radius: 4px;
-  background-color: #8b5cf6;
-  color: white;
-  cursor: pointer;
-  font-size: 1em;
-}
-
-.paklak-button:hover {
-  background-color: #7c3aed;
-}
-
-.paklak-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.paklak-modal-content {
-  background-color: white;
-  border-radius: 12px;
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.paklak-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.paklak-modal-header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.paklak-modal-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #6b7280;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.paklak-modal-close:hover {
-  background-color: #f3f4f6;
-}
-
-.paklak-modal-body {
-  padding: 24px;
 }
 
 </style>
