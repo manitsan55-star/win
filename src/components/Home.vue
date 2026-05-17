@@ -1190,6 +1190,9 @@ h3 {
 }
 
 .paklak-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1em;
   margin-bottom: 1em;
 }
 
