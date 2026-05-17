@@ -736,18 +736,18 @@ export default {
     },
     getDoubleIncludeDoublesSummary(number) {
       const combinations = [];
+      const doubles = [];
       const selected = this.updateSelectedNumbers(number, false);
 
       for (let i = 0; i < selected.length; i++) {
-        // combinations.push(`${selected[i]}${selected[i]}`);
         for (let j = i + 1; j < selected.length; j++) {
           combinations.push(`${selected[i]}${selected[j]}`);
         }
       }
       
-      selected.forEach(num => combinations.push(`${num}${num}`));
+      selected.forEach(num => doubles.push(`${num}${num}`));
 
-      return combinations;
+      return [...combinations, ...doubles];
     },
     getTripleSummary(number){
       const combinations = [];
@@ -765,6 +765,7 @@ export default {
     },
     getTripleIncludeDoublesSummary(number) {
       const combinations = [];
+      const doubles = [];
       const triples = [];
       const selected = this.updateSelectedNumbers(number, false);
 
@@ -775,14 +776,16 @@ export default {
 
             if (selected[i] === selected[j] && selected[j] === selected[k]) {
               triples.push(combination); // Store triples separately
+            } else if (selected[i] === selected[j] || selected[j] === selected[k] || selected[i] === selected[k]) {
+              doubles.push(combination); // Store doubles separately
             } else {
-              combinations.push(combination); // Non-triples first
+              combinations.push(combination); // All-different first
             }
           }
         }
       }
 
-      return [...combinations, ...triples]; // Combine non-triples and triples
+      return [...combinations, ...doubles, ...triples]; // Combine all-different, doubles, and triples
     },
     getTripleIncludeHamSummary(number) {
       const combinations = [];
