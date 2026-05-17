@@ -21,12 +21,15 @@
         <button @click="submitData" class="submit-button" :disabled="isCalculationBlocked">
           คำนวณ
         </button>
+        <button @click="togglePakLak" class="paklak-toggle-button">
+          ปักหลัก
+        </button>
       </div>
     </div>
     <div :class="containerClass">
       <div v-if="lines.length < 2">
         <div :class="summaryClass">
-          <div class="summary-box">
+          <div v-if="showPakLak" class="summary-box">
             <h3>ปักหลักสิบ</h3>
             <button @click="copyPakLakToClipboard('ten')" class="copy-button">
               คัดลอก
@@ -45,7 +48,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="showPakLak" class="summary-box">
             <h3>ปักหลักร้อย</h3>
             <button @click="copyPakLakToClipboard('hundred')" class="copy-button">
               คัดลอก
@@ -64,7 +67,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="showPakLak" class="summary-box">
             <h3>ปักหลักหน่วย</h3>
             <button @click="copyPakLakToClipboard('unit')" class="copy-button">
               คัดลอก
@@ -83,7 +86,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="!showPakLak" class="summary-box">
             <h3>2 ตัวปกติ</h3>
             <button @click="copyDoubleSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -102,7 +105,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="!showPakLak" class="summary-box">
             <h3>2 ตัวรวมเบิ้ล</h3>
             <button @click="copyDoubleIncludeDoublesSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -121,7 +124,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="!showPakLak" class="summary-box">
             <h3>3 ตัวปกติ</h3>
             <button @click="copyTripleSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -140,7 +143,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="!showPakLak" class="summary-box">
             <h3>3 ตัวรวมตองรวมหาม</h3>
             <button @click="copyTripleIncludeDoublesSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -159,7 +162,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="!showPakLak" class="summary-box">
             <h3>3 ตัวรวมหาม</h3>
             <button @click="copyTripleIncludeHamSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -181,7 +184,7 @@
       </div>
 
       <div v-else>
-      <div v-if='isMultiline'>
+      <div v-if="isMultiline && !showPakLak">
         <div :class="summaryClass">
           <div class="summary-copy">
             <button @click="copyDoubleSummaryToClipboard(lines, true)" class="copy-button">
@@ -224,7 +227,7 @@
           <div class="text-red">{{ line }}</div>
         </div>
         <div :class="summaryClass">
-          <div class="summary-box">
+          <div v-if="!showPakLak" class="summary-box">
             <h3>2 ตัวปกติ</h3>
             <button @click="copyDoubleSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -243,7 +246,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="!showPakLak" class="summary-box">
             <h3>2 ตัวรวมเบิ้ล</h3>
             <button @click="copyDoubleIncludeDoublesSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -262,7 +265,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="!showPakLak" class="summary-box">
             <h3>3 ตัวปกติ</h3>
             <button @click="copyTripleSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -281,7 +284,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="!showPakLak" class="summary-box">
             <h3>3 ตัวรวมตองรวมหาม</h3>
             <button @click="copyTripleIncludeDoublesSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -300,7 +303,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="!showPakLak" class="summary-box">
             <h3>3 ตัวรวมหาม</h3>
             <button @click="copyTripleIncludeHamSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -370,6 +373,7 @@ export default {
       isMultiline: false,
       showAuthModal: false,
       showPaymentModal: false,
+      showPakLak: false,
       authModalMode: 'login',
       pendingCalculation: false,
       accessNotice: '',
@@ -780,6 +784,9 @@ export default {
     closePaymentModal() {
       this.showPaymentModal = false;
     },
+    togglePakLak() {
+      this.showPakLak = !this.showPakLak;
+    },
     async handleAuthSuccess() {
       this.showAuthModal = false;
       this.syncAccessNotice();
@@ -1132,6 +1139,20 @@ h3 {
   max-width: 600px;
   margin: auto;
   padding: 10px;
+}
+
+.paklak-toggle-button {
+  padding: 0.5em 1em;
+  border: none;
+  border-radius: 4px;
+  background-color: #8b5cf6;
+  color: white;
+  cursor: pointer;
+  font-size: 1em;
+}
+
+.paklak-toggle-button:hover {
+  background-color: #7c3aed;
 }
 
 </style>
