@@ -941,9 +941,6 @@ export default {
 }
 
 @media (min-width: 480px) {
-  .summary-container {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .summary-container-multiline {
     grid-template-columns: repeat(5, 1fr);
   }
