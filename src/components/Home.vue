@@ -21,7 +21,7 @@
         <button @click="submitData" class="submit-button" :disabled="isCalculationBlocked">
           คำนวณ
         </button>
-        <button @click="calculatePakLak" class="paklak-toggle-button" :disabled="!isAuthenticated()">
+        <button @click="calculatePakLak" class="paklak-toggle-button" :disabled="isCalculationBlocked">
           ปักหลัก
         </button>
       </div>
