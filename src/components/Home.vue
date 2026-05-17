@@ -941,6 +941,9 @@ export default {
 }
 
 @media (min-width: 480px) {
+  .summary-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
   .summary-container-multiline {
     grid-template-columns: repeat(5, 1fr);
   }
@@ -1191,6 +1194,18 @@ h3 {
   grid-template-columns: repeat(3, 1fr);
   gap: 1em;
   margin-bottom: 1em;
+}
+
+@media (min-width: 480px) {
+  .paklak-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 479px) {
+  .paklak-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 </style>
