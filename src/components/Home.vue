@@ -446,59 +446,69 @@ export default {
     },
     calculatePakLakNumbers(input) {
       const num = input.trim();
-      
+
       if (num === '') {
         return [];
       }
 
-      const digits = num.split('').filter(d => d >= '0' && d <= '9');
-      
+      const digits = num
+        .split('')
+        .filter(d => d >= '0' && d <= '9');
+
       if (digits.length === 0) {
         return [];
       }
 
       const results = [];
-      
-      // สำหรับแต่ละตัวเลขที่ใส่เข้ามา
+
       digits.forEach(digit => {
         const digitNum = parseInt(digit, 10);
-        
-        if (digitNum < 0 || digitNum > 9) {
-          return;
-        }
 
-        // ปักหลักสิบ (หลักกลาง = inputNumber)
         const ten = [];
+        const hundred = [];
+        const unit = [];
+
+        // ปักหลักสิบ
         for (let x = 1; x <= 9; x++) {
           for (let y = 0; y <= 9; y++) {
-            if (y > x && x !== digit && y !== digit) {
-              ten.push(`${x}${digit}${y}`);
+            if (
+              y > x &&
+              x !== digitNum &&
+              y !== digitNum
+            ) {
+              ten.push(`${x}${digitNum}${y}`);
             }
           }
         }
 
-        // ปักหลักร้อย (หลักซ้าย = inputNumber)
-        const hundred = [];
+        // ปักหลักร้อย
         for (let x = 0; x <= 9; x++) {
           for (let y = 0; y <= 9; y++) {
-            if (y > x && x !== digit && y !== digit) {
-              hundred.push(`${digit}${x}${y}`);
+            if (
+              y > x &&
+              x !== digitNum &&
+              y !== digitNum
+            ) {
+              hundred.push(`${digitNum}${x}${y}`);
             }
           }
         }
 
-        // ปักหลักหน่วย (หลักขวา = inputNumber)
-        const unit = [];
+        // ปักหลักหน่วย
         for (let x = 1; x <= 9; x++) {
           for (let y = 0; y <= 9; y++) {
-            if (y > x && x !== digit && y !== digit) {
-              unit.push(`${x}${y}${digit}`);
+            if (
+              y > x &&
+              x !== digitNum &&
+              y !== digitNum
+            ) {
+              unit.push(`${x}${y}${digitNum}`);
             }
           }
         }
 
         results.push({
-          digit: digit,
+          digit: digitNum,
           ten,
           hundred,
           unit
