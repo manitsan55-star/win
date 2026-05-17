@@ -470,8 +470,8 @@ export default {
         // ปักหลักสิบ (หลักกลาง = inputNumber)
         const ten = [];
         for (let x = 1; x <= 9; x++) {
-          for (let y = 1; y <= 9; y++) {
-            if (x !== y) {
+          for (let y = 0; y <= 9; y++) {
+            if (x !== digit && y !== digit && x !== y) {
               ten.push(`${x}${digit}${y}`);
             }
           }
@@ -479,9 +479,9 @@ export default {
 
         // ปักหลักร้อย (หลักซ้าย = inputNumber)
         const hundred = [];
-        for (let x = 1; x <= 9; x++) {
+        for (let x = 0; x <= 9; x++) {
           for (let y = 1; y <= 9; y++) {
-            if (x !== y) {
+            if (x !== digit && y !== digit && x !== y) {
               hundred.push(`${digit}${x}${y}`);
             }
           }
@@ -490,8 +490,8 @@ export default {
         // ปักหลักหน่วย (หลักขวา = inputNumber)
         const unit = [];
         for (let x = 1; x <= 9; x++) {
-          for (let y = 1; y <= 9; y++) {
-            if (x !== y) {
+          for (let y = 0; y <= 9; y++) {
+            if (x !== digit && y !== digit && x !== y) {
               unit.push(`${x}${y}${digit}`);
             }
           }
