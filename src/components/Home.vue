@@ -18,6 +18,9 @@
         <button @click="resetAll" class="reset-button">
           เริ่มใหม่
         </button>
+        <button @click="openPakLakModal" class="paklak-button">
+          ปักหลัก
+        </button>
         <button @click="submitData" class="submit-button" :disabled="isCalculationBlocked">
           คำนวณ
         </button>
@@ -281,12 +284,24 @@
     :settings="paymentSettings"
     @close="closePaymentModal"
   />
+  <div v-if="showPakLakModal" class="paklak-modal-overlay" @click="closePakLakModal">
+    <div class="paklak-modal-content" @click.stop>
+      <div class="paklak-modal-header">
+        <h3>ปักหลัก</h3>
+        <button type="button" class="paklak-modal-close" @click="closePakLakModal">✕</button>
+      </div>
+      <div class="paklak-modal-body">
+        <PakLakCalculator />
+      </div>
+    </div>
+  </div>
 </template>
 
 
 <script>
 import AuthModal from '@/components/AuthModal.vue';
 import MainNavbar from '@/components/MainNavbar.vue';
+import PakLakCalculator from '@/components/PakLakCalculator.vue';
 import PaymentMethodModal from '@/components/PaymentMethodModal.vue';
 import { consumeAuthNotice, getCurrentUser, getUserAccessState, isAuthenticated } from '@/utils/auth';
 import { fetchPaymentSettings } from '@/utils/payment';
@@ -295,6 +310,7 @@ export default {
   components: {
     AuthModal,
     MainNavbar,
+    PakLakCalculator,
     PaymentMethodModal,
   },
   name: 'HomePage',
@@ -313,6 +329,7 @@ export default {
       isMultiline: false,
       showAuthModal: false,
       showPaymentModal: false,
+      showPakLakModal: false,
       authModalMode: 'login',
       pendingCalculation: false,
       accessNotice: '',
@@ -657,6 +674,12 @@ export default {
     },
     closePaymentModal() {
       this.showPaymentModal = false;
+    },
+    openPakLakModal() {
+      this.showPakLakModal = true;
+    },
+    closePakLakModal() {
+      this.showPakLakModal = false;
     },
     async handleAuthSuccess() {
       this.showAuthModal = false;
@@ -1010,6 +1033,81 @@ h3 {
   max-width: 600px;
   margin: auto;
   padding: 10px;
+}
+
+.paklak-button {
+  padding: 0.5em 1em;
+  border: none;
+  border-radius: 4px;
+  background-color: #8b5cf6;
+  color: white;
+  cursor: pointer;
+  font-size: 1em;
+}
+
+.paklak-button:hover {
+  background-color: #7c3aed;
+}
+
+.paklak-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.paklak-modal-content {
+  background-color: white;
+  border-radius: 12px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.paklak-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.paklak-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.paklak-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.paklak-modal-close:hover {
+  background-color: #f3f4f6;
+}
+
+.paklak-modal-body {
+  padding: 24px;
 }
 
 </style>
