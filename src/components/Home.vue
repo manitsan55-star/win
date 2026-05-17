@@ -826,12 +826,14 @@ export default {
     copyDoubleSummaryToClipboard(line, all) {
       let result = [];
       if (all) {
-        result = this.lines.reduce((acc, line) => acc.concat(this.getDoubleSummary(line)), []);
+        result = this.lines.map(line => this.getDoubleSummary(line).join('-'));
       } else {
         result = this.getDoubleSummary(line);
       }
 
-      const filteredSummary = result.filter(number => !this.highlightedNumbers.includes(number)).join('-');
+      const filteredSummary = Array.isArray(result) 
+        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('-')
+        : result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n');
       navigator.clipboard.writeText(filteredSummary).then(() => {
         this.showCopyNotification = true;
 
@@ -845,12 +847,14 @@ export default {
     copyDoubleIncludeDoublesSummaryToClipboard(line, all) {
       let result = [];
       if (all) {
-        result = this.lines.reduce((acc, line) => acc.concat(this.getDoubleIncludeDoublesSummary(line)), []);
+        result = this.lines.map(line => this.getDoubleIncludeDoublesSummary(line).join('-'));
       } else {
         result = this.getDoubleIncludeDoublesSummary(line);
       }
 
-      const filteredSummary = result.filter(number => !this.highlightedNumbers.includes(number)).join('-');
+      const filteredSummary = Array.isArray(result) 
+        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('-')
+        : result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n');
       navigator.clipboard.writeText(filteredSummary).then(() => {
         this.showCopyNotification = true;
 
@@ -864,12 +868,14 @@ export default {
     copyTripleSummaryToClipboard(line, all) {
       let result = [];
       if (all) {
-        result = this.lines.reduce((acc, line) => acc.concat(this.getTripleSummary(line)), []);
+        result = this.lines.map(line => this.getTripleSummary(line).join('-'));
       } else {
         result = this.getTripleSummary(line);
       }
 
-      const filteredSummary = result.filter(number => !this.highlightedNumbers.includes(number)).join('-');
+      const filteredSummary = Array.isArray(result) 
+        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('-')
+        : result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n');
       navigator.clipboard.writeText(filteredSummary).then(() => {
         this.showCopyNotification = true;
 
@@ -883,12 +889,14 @@ export default {
     copyTripleIncludeDoublesSummaryToClipboard(line, all) {
       let result = [];
       if (all) {
-        result = this.lines.reduce((acc, line) => acc.concat(this.getTripleIncludeDoublesSummary(line)), []);
+        result = this.lines.map(line => this.getTripleIncludeDoublesSummary(line).join('-'));
       } else {
         result = this.getTripleIncludeDoublesSummary(line);
       }
 
-      const filteredSummary = result.filter(number => !this.highlightedNumbers.includes(number)).join('-');
+      const filteredSummary = Array.isArray(result) 
+        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('-')
+        : result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n');
       navigator.clipboard.writeText(filteredSummary).then(() => {
         this.showCopyNotification = true;
 
@@ -902,12 +910,14 @@ export default {
     copyTripleIncludeHamSummaryToClipboard(line, all) {
       let result = [];
       if (all) {
-        result = this.lines.reduce((acc, line) => acc.concat(this.getTripleIncludeHamSummary(line)), []);
+        result = this.lines.map(line => this.getTripleIncludeHamSummary(line).join('-'));
       } else {
         result = this.getTripleIncludeHamSummary(line);
       }
 
-      const filteredSummary = result.filter(number => !this.highlightedNumbers.includes(number)).join('-');
+      const filteredSummary = Array.isArray(result) 
+        ? result.filter(number => !this.highlightedNumbers.includes(number)).join('-')
+        : result.filter(number => !this.highlightedNumbers.includes(number)).join('\n\n');
       navigator.clipboard.writeText(filteredSummary).then(() => {
         this.showCopyNotification = true;
 
