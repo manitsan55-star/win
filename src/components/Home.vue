@@ -21,72 +21,76 @@
         <button @click="submitData" class="submit-button" :disabled="isCalculationBlocked">
           คำนวณ
         </button>
-        <button @click="togglePakLak" class="paklak-toggle-button">
+        <button @click="calculatePakLak" class="paklak-toggle-button" :disabled="!isAuthenticated()">
           ปักหลัก
         </button>
       </div>
     </div>
     <div :class="containerClass">
       <div v-if="lines.length < 2">
-        <div :class="summaryClass">
-          <div v-if="showPakLak" class="summary-box">
-            <h3>ปักหลักสิบ</h3>
-            <button @click="copyPakLakToClipboard('ten')" class="copy-button">
-              คัดลอก
-            </button>
-            <div class="summary-content">
-              <div class="summary-text">
-                <span 
-                  v-for="number in getPakLakSummary(inputNumbers).ten" 
-                  :key="number"
-                  :class="summaryNumberClass(number)"
-                  class="summary-number"
-                >
-                  {{ number }}
-                </span>
+        <div v-if="showPakLak" :class="summaryClass">
+          <div v-for="(result, index) in getPakLakSummary(inputNumbers)" :key="index" class="paklak-row">
+            <div class="summary-box">
+              <h3>ปักหลักสิบ ({{ result.digit }})</h3>
+              <button @click="copyPakLakToClipboard(index, 'ten')" class="copy-button">
+                คัดลอก
+              </button>
+              <div class="summary-content">
+                <div class="summary-text">
+                  <span 
+                    v-for="number in result.ten" 
+                    :key="number"
+                    :class="summaryNumberClass(number)"
+                    class="summary-number"
+                  >
+                    {{ number }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="summary-box">
+              <h3>ปักหลักร้อย ({{ result.digit }})</h3>
+              <button @click="copyPakLakToClipboard(index, 'hundred')" class="copy-button">
+                คัดลอก
+              </button>
+              <div class="summary-content">
+                <div class="summary-text">
+                  <span 
+                    v-for="number in result.hundred" 
+                    :key="number"
+                    :class="summaryNumberClass(number)"
+                    class="summary-number"
+                  >
+                    {{ number }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="summary-box">
+              <h3>ปักหลักหน่วย ({{ result.digit }})</h3>
+              <button @click="copyPakLakToClipboard(index, 'unit')" class="copy-button">
+                คัดลอก
+              </button>
+              <div class="summary-content">
+                <div class="summary-text">
+                  <span 
+                    v-for="number in result.unit" 
+                    :key="number"
+                    :class="summaryNumberClass(number)"
+                    class="summary-number"
+                  >
+                    {{ number }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div v-if="showPakLak" class="summary-box">
-            <h3>ปักหลักร้อย</h3>
-            <button @click="copyPakLakToClipboard('hundred')" class="copy-button">
-              คัดลอก
-            </button>
-            <div class="summary-content">
-              <div class="summary-text">
-                <span 
-                  v-for="number in getPakLakSummary(inputNumbers).hundred" 
-                  :key="number"
-                  :class="summaryNumberClass(number)"
-                  class="summary-number"
-                >
-                  {{ number }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="showPakLak" class="summary-box">
-            <h3>ปักหลักหน่วย</h3>
-            <button @click="copyPakLakToClipboard('unit')" class="copy-button">
-              คัดลอก
-            </button>
-            <div class="summary-content">
-              <div class="summary-text">
-                <span 
-                  v-for="number in getPakLakSummary(inputNumbers).unit" 
-                  :key="number"
-                  :class="summaryNumberClass(number)"
-                  class="summary-number"
-                >
-                  {{ number }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="!showPakLak" class="summary-box">
+        <div v-if="!showPakLak" :class="summaryClass">
+          <div class="summary-box">
             <h3>2 ตัวปกติ</h3>
             <button @click="copyDoubleSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -439,51 +443,71 @@ export default {
       // console.log(this.inputNumbers)
       // console.log(this.lines)
     },
-    calculatePakLak(input) {
+    calculatePakLakNumbers(input) {
       const num = input.trim();
       
-      if (num === '' || num < 0 || num > 9) {
-        return {
-          ten: [],
-          hundred: [],
-          unit: []
-        };
+      if (num === '') {
+        return [];
       }
 
-      // ปักหลักสิบ (หลักกลาง = inputNumber)
-      const ten = [];
-      for (let x = 1; x <= 9; x++) {
-        for (let y = 1; y <= 9; y++) {
-          if (x !== y) {
-            ten.push(`${x}${num}${y}`);
+      const digits = num.split('').filter(d => d >= '0' && d <= '9');
+      
+      if (digits.length === 0) {
+        return [];
+      }
+
+      const results = [];
+      
+      // สำหรับแต่ละตัวเลขที่ใส่เข้ามา
+      digits.forEach(digit => {
+        const digitNum = parseInt(digit, 10);
+        
+        if (digitNum < 0 || digitNum > 9) {
+          return;
+        }
+
+        // ปักหลักสิบ (หลักกลาง = inputNumber)
+        const ten = [];
+        for (let x = 1; x <= 9; x++) {
+          for (let y = 1; y <= 9; y++) {
+            if (x !== y) {
+              ten.push(`${x}${digit}${y}`);
+            }
           }
         }
-      }
 
-      // ปักหลักร้อย (หลักซ้าย = inputNumber)
-      const hundred = [];
-      for (let x = 1; x <= 9; x++) {
-        for (let y = 1; y <= 9; y++) {
-          if (x !== y) {
-            hundred.push(`${num}${x}${y}`);
+        // ปักหลักร้อย (หลักซ้าย = inputNumber)
+        const hundred = [];
+        for (let x = 1; x <= 9; x++) {
+          for (let y = 1; y <= 9; y++) {
+            if (x !== y) {
+              hundred.push(`${digit}${x}${y}`);
+            }
           }
         }
-      }
 
-      // ปักหลักหน่วย (หลักขวา = inputNumber)
-      const unit = [];
-      for (let x = 1; x <= 9; x++) {
-        for (let y = 1; y <= 9; y++) {
-          if (x !== y) {
-            unit.push(`${x}${y}${num}`);
+        // ปักหลักหน่วย (หลักขวา = inputNumber)
+        const unit = [];
+        for (let x = 1; x <= 9; x++) {
+          for (let y = 1; y <= 9; y++) {
+            if (x !== y) {
+              unit.push(`${x}${y}${digit}`);
+            }
           }
         }
-      }
 
-      return { ten, hundred, unit };
+        results.push({
+          digit: digit,
+          ten,
+          hundred,
+          unit
+        });
+      });
+
+      return results;
     },
     getPakLakSummary(input) {
-      return this.calculatePakLak(input);
+      return this.calculatePakLakNumbers(input);
     },
     checkMultiline() {
       // this.$nextTick(() => {
@@ -701,9 +725,13 @@ export default {
         console.error('Failed to copy summary: ', err);
       });
     },
-    copyPakLakToClipboard(type) {
+    copyPakLakToClipboard(index, type) {
       const pakLakSummary = this.getPakLakSummary(this.inputNumbers);
-      const result = pakLakSummary[type] || [];
+      if (!pakLakSummary[index]) {
+        return;
+      }
+      
+      const result = pakLakSummary[index][type] || [];
       
       if (result.length === 0) {
         return;
@@ -784,8 +812,13 @@ export default {
     closePaymentModal() {
       this.showPaymentModal = false;
     },
-    togglePakLak() {
-      this.showPakLak = !this.showPakLak;
+    calculatePakLak() {
+      if (!isAuthenticated()) {
+        this.openAuthModal('login');
+        return;
+      }
+
+      this.showPakLak = true;
     },
     async handleAuthSuccess() {
       this.showAuthModal = false;
@@ -1153,6 +1186,13 @@ h3 {
 
 .paklak-toggle-button:hover {
   background-color: #7c3aed;
+}
+
+.paklak-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1em;
+  margin-bottom: 1em;
 }
 
 </style>
