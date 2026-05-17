@@ -28,8 +28,8 @@
     </div>
     <div :class="containerClass">
       <div v-if="lines.length < 2">
-        <div v-if="showPakLak" :class="summaryClass">
-          <div v-for="(result, index) in getPakLakSummary(inputNumbers)" :key="index" class="paklak-row">
+        <div :class="summaryClass">
+          <div v-for="(result, index) in pakLakResults" :key="index" class="paklak-row">
             <div class="summary-box">
               <h3>ปักหลักสิบ ({{ result.digit }})</h3>
               <button @click="copyPakLakToClipboard(index, 'ten')" class="copy-button">
@@ -87,9 +87,7 @@
               </div>
             </div>
           </div>
-        </div>
 
-        <div v-if="!showPakLak" :class="summaryClass">
           <div class="summary-box">
             <h3>2 ตัวปกติ</h3>
             <button @click="copyDoubleSummaryToClipboard(lines, false)" class="copy-button">
@@ -109,7 +107,7 @@
             </div>
           </div>
 
-          <div v-if="!showPakLak" class="summary-box">
+          <div class="summary-box">
             <h3>2 ตัวรวมเบิ้ล</h3>
             <button @click="copyDoubleIncludeDoublesSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -128,7 +126,7 @@
             </div>
           </div>
 
-          <div v-if="!showPakLak" class="summary-box">
+          <div class="summary-box">
             <h3>3 ตัวปกติ</h3>
             <button @click="copyTripleSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -147,7 +145,7 @@
             </div>
           </div>
 
-          <div v-if="!showPakLak" class="summary-box">
+          <div class="summary-box">
             <h3>3 ตัวรวมตองรวมหาม</h3>
             <button @click="copyTripleIncludeDoublesSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -166,7 +164,7 @@
             </div>
           </div>
 
-          <div v-if="!showPakLak" class="summary-box">
+          <div class="summary-box">
             <h3>3 ตัวรวมหาม</h3>
             <button @click="copyTripleIncludeHamSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -188,7 +186,7 @@
       </div>
 
       <div v-else>
-      <div v-if="isMultiline && !showPakLak">
+      <div v-if="isMultiline">
         <div :class="summaryClass">
           <div class="summary-copy">
             <button @click="copyDoubleSummaryToClipboard(lines, true)" class="copy-button">
@@ -231,7 +229,7 @@
           <div class="text-red">{{ line }}</div>
         </div>
         <div :class="summaryClass">
-          <div v-if="!showPakLak" class="summary-box">
+          <div class="summary-box">
             <h3>2 ตัวปกติ</h3>
             <button @click="copyDoubleSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -250,7 +248,7 @@
             </div>
           </div>
 
-          <div v-if="!showPakLak" class="summary-box">
+          <div class="summary-box">
             <h3>2 ตัวรวมเบิ้ล</h3>
             <button @click="copyDoubleIncludeDoublesSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -269,7 +267,7 @@
             </div>
           </div>
 
-          <div v-if="!showPakLak" class="summary-box">
+          <div class="summary-box">
             <h3>3 ตัวปกติ</h3>
             <button @click="copyTripleSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -288,7 +286,7 @@
             </div>
           </div>
 
-          <div v-if="!showPakLak" class="summary-box">
+          <div class="summary-box">
             <h3>3 ตัวรวมตองรวมหาม</h3>
             <button @click="copyTripleIncludeDoublesSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -307,7 +305,7 @@
             </div>
           </div>
 
-          <div v-if="!showPakLak" class="summary-box">
+          <div class="summary-box">
             <h3>3 ตัวรวมหาม</h3>
             <button @click="copyTripleIncludeHamSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -378,6 +376,7 @@ export default {
       showAuthModal: false,
       showPaymentModal: false,
       showPakLak: false,
+      pakLakResults: [],
       authModalMode: 'login',
       pendingCalculation: false,
       accessNotice: '',
@@ -726,12 +725,11 @@ export default {
       });
     },
     copyPakLakToClipboard(index, type) {
-      const pakLakSummary = this.getPakLakSummary(this.inputNumbers);
-      if (!pakLakSummary[index]) {
+      if (!this.pakLakResults[index]) {
         return;
       }
       
-      const result = pakLakSummary[index][type] || [];
+      const result = this.pakLakResults[index][type] || [];
       
       if (result.length === 0) {
         return;
@@ -818,7 +816,7 @@ export default {
         return;
       }
 
-      this.showPakLak = true;
+      this.pakLakResults = this.calculatePakLakNumbers(this.inputNumbers);
     },
     async handleAuthSuccess() {
       this.showAuthModal = false;
@@ -1189,9 +1187,6 @@ h3 {
 }
 
 .paklak-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1em;
   margin-bottom: 1em;
 }
 
