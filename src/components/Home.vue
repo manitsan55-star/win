@@ -40,7 +40,7 @@
               ปักหลัก 2 ตัว
             </button>
             <button @click="calculatePakLak2DigitIncludeHam" class="paklak-dropdown-item">
-              ปักหลัก 2 ตัว รวมเลขหามตอง
+              ปักหลัก 2 ตัว รวมเบิ้ล
             </button>
           </div>
         </div>
