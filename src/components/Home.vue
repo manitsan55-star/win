@@ -88,7 +88,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="pakLakResults.length === 0" class="summary-box">
             <h3>2 ตัวปกติ</h3>
             <button @click="copyDoubleSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -107,7 +107,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="pakLakResults.length === 0" class="summary-box">
             <h3>2 ตัวรวมเบิ้ล</h3>
             <button @click="copyDoubleIncludeDoublesSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -126,7 +126,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="pakLakResults.length === 0" class="summary-box">
             <h3>3 ตัวปกติ</h3>
             <button @click="copyTripleSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -145,7 +145,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="pakLakResults.length === 0" class="summary-box">
             <h3>3 ตัวรวมตองรวมหาม</h3>
             <button @click="copyTripleIncludeDoublesSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -164,7 +164,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="pakLakResults.length === 0" class="summary-box">
             <h3>3 ตัวรวมหาม</h3>
             <button @click="copyTripleIncludeHamSummaryToClipboard(lines, false)" class="copy-button">
               คัดลอก
@@ -186,7 +186,7 @@
       </div>
 
       <div v-else>
-      <div v-if="isMultiline">
+      <div v-if="isMultiline && pakLakResults.length === 0">
         <div :class="summaryClass">
           <div class="summary-copy">
             <button @click="copyDoubleSummaryToClipboard(lines, true)" class="copy-button">
@@ -229,7 +229,7 @@
           <div class="text-red">{{ line }}</div>
         </div>
         <div :class="summaryClass">
-          <div class="summary-box">
+          <div v-if="pakLakResults.length === 0" class="summary-box">
             <h3>2 ตัวปกติ</h3>
             <button @click="copyDoubleSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -248,7 +248,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="pakLakResults.length === 0" class="summary-box">
             <h3>2 ตัวรวมเบิ้ล</h3>
             <button @click="copyDoubleIncludeDoublesSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -267,7 +267,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="pakLakResults.length === 0" class="summary-box">
             <h3>3 ตัวปกติ</h3>
             <button @click="copyTripleSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -286,7 +286,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="pakLakResults.length === 0" class="summary-box">
             <h3>3 ตัวรวมตองรวมหาม</h3>
             <button @click="copyTripleIncludeDoublesSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -305,7 +305,7 @@
             </div>
           </div>
 
-          <div class="summary-box">
+          <div v-if="pakLakResults.length === 0" class="summary-box">
             <h3>3 ตัวรวมหาม</h3>
             <button @click="copyTripleIncludeHamSummaryToClipboard(line)" class="copy-button">
               คัดลอก
@@ -755,6 +755,7 @@ export default {
       this.onlyDoubles = false;
       this.combinationLength = '2';
       this.isMultiline = false;
+      this.pakLakResults = [];
     },
     setCombinationLength(length) {
       this.combinationLength = length;
@@ -816,6 +817,7 @@ export default {
         return;
       }
 
+      this.pakLakResults = [];
       this.pakLakResults = this.calculatePakLakNumbers(this.inputNumbers);
     },
     async handleAuthSuccess() {
@@ -1187,6 +1189,9 @@ h3 {
 }
 
 .paklak-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1em;
   margin-bottom: 1em;
 }
 
