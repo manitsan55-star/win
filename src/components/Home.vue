@@ -21,9 +21,29 @@
         <button @click="submitData" class="submit-button" :disabled="isCalculationBlocked">
           คำนวณ
         </button>
-        <button @click="calculatePakLak" class="paklak-toggle-button" :disabled="isCalculationBlocked">
-          ปักหลัก
-        </button>
+        <div class="paklak-dropdown" :class="{ open: showPakLakDropdown }">
+          <button 
+            @click="togglePakLakDropdown" 
+            class="paklak-toggle-button" 
+            :disabled="isCalculationBlocked"
+          >
+            ปักหลัก ▼
+          </button>
+          <div v-if="showPakLakDropdown" class="paklak-dropdown-menu">
+            <button @click="calculatePakLak3Digit" class="paklak-dropdown-item">
+              ปักหลัก 3 ตัว
+            </button>
+            <button @click="calculatePakLak3DigitIncludeHam" class="paklak-dropdown-item">
+              ปักหลัก 3 ตัว รวมเลขหามตอง
+            </button>
+            <button @click="calculatePakLak2Digit" class="paklak-dropdown-item">
+              ปักหลัก 2 ตัว
+            </button>
+            <button @click="calculatePakLak2DigitIncludeHam" class="paklak-dropdown-item">
+              ปักหลัก 2 ตัว รวมเลขหามตอง
+            </button>
+          </div>
+        </div>
       </div>
     </div>
     <div :class="containerClass">
@@ -49,7 +69,7 @@
               </div>
             </div>
 
-            <div class="summary-box">
+            <div v-if="result.hundred" class="summary-box">
               <h3>ปักหลักร้อย ({{ result.digit }})</h3>
               <button @click="copyPakLakToClipboard(index, 'hundred')" class="copy-button">
                 คัดลอก
@@ -378,6 +398,7 @@ export default {
       showAuthModal: false,
       showPaymentModal: false,
       showPakLak: false,
+      showPakLakDropdown: false,
       pakLakResults: [],
       authModalMode: 'login',
       pendingCalculation: false,
@@ -511,6 +532,164 @@ export default {
           digit: digitNum,
           ten,
           hundred,
+          unit
+        });
+      });
+
+      return results;
+    },
+    calculatePakLakNumbersIncludeHam(input) {
+      const num = input.trim();
+
+      if (num === '') {
+        return [];
+      }
+
+      const digits = num
+        .split('')
+        .filter(d => d >= '0' && d <= '9');
+
+      if (digits.length === 0) {
+        return [];
+      }
+
+      const results = [];
+
+      digits.forEach(digit => {
+        const digitNum = parseInt(digit, 10);
+
+        const ten = [];
+        const hundred = [];
+        const unit = [];
+
+        // ปักหลักสิบ รวมเลขหามตอง
+        for (let x = 1; x <= 9; x++) {
+          for (let y = 0; y <= 9; y++) {
+            if (
+              y >= x &&
+              (x !== digitNum || y !== digitNum)
+            ) {
+              ten.push(`${x}${digitNum}${y}`);
+            }
+          }
+        }
+
+        // ปักหลักร้อย รวมเลขหามตอง
+        for (let x = 0; x <= 9; x++) {
+          for (let y = 0; y <= 9; y++) {
+            if (
+              y >= x &&
+              (x !== digitNum || y !== digitNum)
+            ) {
+              hundred.push(`${digitNum}${x}${y}`);
+            }
+          }
+        }
+
+        // ปักหลักหน่วย รวมเลขหามตอง
+        for (let x = 1; x <= 9; x++) {
+          for (let y = 0; y <= 9; y++) {
+            if (
+              y >= x &&
+              (x !== digitNum || y !== digitNum)
+            ) {
+              unit.push(`${x}${y}${digitNum}`);
+            }
+          }
+        }
+
+        results.push({
+          digit: digitNum,
+          ten,
+          hundred,
+          unit
+        });
+      });
+
+      return results;
+    },
+    calculatePakLak2DigitNumbers(input) {
+      const num = input.trim();
+
+      if (num === '') {
+        return [];
+      }
+
+      const digits = num
+        .split('')
+        .filter(d => d >= '0' && d <= '9');
+
+      if (digits.length === 0) {
+        return [];
+      }
+
+      const results = [];
+
+      digits.forEach(digit => {
+        const digitNum = parseInt(digit, 10);
+
+        const ten = [];
+        const unit = [];
+
+        // ปักหลักสิบ 2 ตัว
+        for (let x = 1; x <= 9; x++) {
+          if (x !== digitNum) {
+            ten.push(`${x}${digitNum}`);
+          }
+        }
+
+        // ปักหลักหน่วย 2 ตัว
+        for (let x = 1; x <= 9; x++) {
+          if (x !== digitNum) {
+            unit.push(`${digitNum}${x}`);
+          }
+        }
+
+        results.push({
+          digit: digitNum,
+          ten,
+          unit
+        });
+      });
+
+      return results;
+    },
+    calculatePakLak2DigitNumbersIncludeHam(input) {
+      const num = input.trim();
+
+      if (num === '') {
+        return [];
+      }
+
+      const digits = num
+        .split('')
+        .filter(d => d >= '0' && d <= '9');
+
+      if (digits.length === 0) {
+        return [];
+      }
+
+      const results = [];
+
+      digits.forEach(digit => {
+        const digitNum = parseInt(digit, 10);
+
+        const ten = [];
+        const unit = [];
+
+        // ปักหลักสิบ 2 ตัว รวมเลขหามตอง
+        for (let x = 1; x <= 9; x++) {
+          ten.push(`${x}${digitNum}`);
+        }
+
+        // ปักหลักหน่วย 2 ตัว รวมเลขหามตอง
+        for (let x = 1; x <= 9; x++) {
+          unit.push(`${digitNum}${x}`);
+        }
+
+        results.push({
+          digit: digitNum,
+          ten,
           unit
         });
       });
@@ -832,6 +1011,45 @@ export default {
 
       this.pakLakResults = [];
       this.pakLakResults = this.calculatePakLakNumbers(this.inputNumbers);
+    },
+    togglePakLakDropdown() {
+      this.showPakLakDropdown = !this.showPakLakDropdown;
+    },
+    calculatePakLak3Digit() {
+      if (!isAuthenticated()) {
+        this.openAuthModal('login');
+        return;
+      }
+      this.showPakLakDropdown = false;
+      this.pakLakResults = [];
+      this.pakLakResults = this.calculatePakLakNumbers(this.inputNumbers);
+    },
+    calculatePakLak3DigitIncludeHam() {
+      if (!isAuthenticated()) {
+        this.openAuthModal('login');
+        return;
+      }
+      this.showPakLakDropdown = false;
+      this.pakLakResults = [];
+      this.pakLakResults = this.calculatePakLakNumbersIncludeHam(this.inputNumbers);
+    },
+    calculatePakLak2Digit() {
+      if (!isAuthenticated()) {
+        this.openAuthModal('login');
+        return;
+      }
+      this.showPakLakDropdown = false;
+      this.pakLakResults = [];
+      this.pakLakResults = this.calculatePakLak2DigitNumbers(this.inputNumbers);
+    },
+    calculatePakLak2DigitIncludeHam() {
+      if (!isAuthenticated()) {
+        this.openAuthModal('login');
+        return;
+      }
+      this.showPakLakDropdown = false;
+      this.pakLakResults = [];
+      this.pakLakResults = this.calculatePakLak2DigitNumbersIncludeHam(this.inputNumbers);
     },
     async handleAuthSuccess() {
       this.showAuthModal = false;
@@ -1199,6 +1417,38 @@ h3 {
 
 .paklak-toggle-button:hover {
   background-color: #7c3aed;
+}
+
+.paklak-dropdown {
+  position: relative;
+}
+
+.paklak-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  margin-top: 0.25em;
+}
+
+.paklak-dropdown-item {
+  width: 100%;
+  padding: 0.5em 1em;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease;
+}
+
+.paklak-dropdown-item:hover {
+  background-color: #f3f4f6;
 }
 
 .paklak-container {
