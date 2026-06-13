@@ -437,18 +437,23 @@ export async function authenticateUser({ username, password }) {
 }
 
 async function startUserSession(user) {
-  const updatedUser = {
-    ...user,
-    currentSessionId: createSessionId(),
-  };
+  const isAdmin = user.role === 'admin';
 
-  await saveUser(updatedUser);
+  const updatedUser = isAdmin
+    ? user
+    : {
+        ...user,
+        currentSessionId: createSessionId(),
+      };
 
-  const persistedUser = (await waitForSessionPersistence(updatedUser.username, updatedUser.currentSessionId)) || updatedUser;
+  if (!isAdmin) {
+    await saveUser(updatedUser);
+    await waitForSessionPersistence(updatedUser.username, updatedUser.currentSessionId);
+  }
 
   return {
-    user: sanitizeUser(persistedUser),
-    token: issueToken(persistedUser),
+    user: sanitizeUser(updatedUser),
+    token: issueToken(updatedUser),
   };
 }
 
@@ -514,12 +519,14 @@ export async function getUserFromRequest(request) {
     throw new Error('unauthorized');
   }
 
-  if (!decoded.sessionId || !user.currentSessionId) {
-    throw new Error('unauthorized');
-  }
+  if (user.role !== 'admin') {
+    if (!decoded.sessionId || !user.currentSessionId) {
+      throw new Error('unauthorized');
+    }
 
-  if (decoded.sessionId !== user.currentSessionId) {
-    throw new Error('session_replaced');
+    if (decoded.sessionId !== user.currentSessionId) {
+      throw new Error('session_replaced');
+    }
   }
 
   return sanitizeUser(user);
