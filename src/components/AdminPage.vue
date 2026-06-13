@@ -115,6 +115,23 @@
       </div>
 
       <div v-if="activeTab === 'users' && users.length > 0" class="user-list">
+        <div class="stats-row">
+          <div class="stat-card">
+            <span class="stat-label">ผู้ใช้ทั้งหมด</span>
+            <span class="stat-value">{{ userStats.total }}</span>
+          </div>
+          <div class="stat-card stat-active">
+            <span class="stat-label">Active</span>
+            <span class="stat-value">{{ userStats.active }}</span>
+          </div>
+          <div class="stat-card stat-inactive">
+            <span class="stat-label">ไม่ Active</span>
+            <span class="stat-value">{{ userStats.inactive }}</span>
+          </div>
+        </div>
+        <div class="search-row">
+          <input v-model.trim="searchQuery" type="text" placeholder="ค้นหา username..." class="search-input" />
+        </div>
         <label class="filter-toggle">
           <input v-model="showNewUsersWithSlipOnly" type="checkbox" />
           <span>แสดงเฉพาะ user ใหม่ที่อัปโหลดสลิปแล้ว (รอแก้วันหมดอายุ)</span>
@@ -124,6 +141,7 @@
             <tr>
               <th>Username</th>
               <th>Slip</th>
+              <th>อนุมัติ</th>
               <th>Role</th>
               <th>Locked</th>
               <th>New User</th>
@@ -133,7 +151,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredUsers" :key="user.id">
+            <tr v-for="user in paginatedUsers" :key="user.id">
               <td>{{ user.username }}</td>
               <td>
                 <div v-if="getLatestSlipForUser(user)" class="user-slip-cell">
@@ -143,6 +161,16 @@
                   </div>
                 </div>
                 <span v-else class="user-slip-empty">ยังไม่มีสลิป</span>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="approve-button"
+                  :disabled="isBusy(user.id) || isCurrentUser(user.id)"
+                  @click="approveUser31Days(user)"
+                >
+                  อนุมัติ 31 วัน
+                </button>
               </td>
               <td>
                 <select
@@ -214,6 +242,34 @@
             </tr>
           </tbody>
         </table>
+
+        <div v-if="totalPages > 1" class="pagination-row">
+          <div class="pagination-info">
+            หน้า {{ currentPage }} / {{ totalPages }} ({{ filteredUsers.length }} รายการ)
+          </div>
+          <div class="pagination-controls">
+            <button type="button" :disabled="currentPage === 1" class="page-btn" @click="currentPage -= 1">ก่อนหน้า</button>
+            <button
+              v-for="page in totalPages"
+              :key="page"
+              type="button"
+              :class="['page-btn', { active: page === currentPage }]"
+              @click="currentPage = page"
+            >
+              {{ page }}
+            </button>
+            <button type="button" :disabled="currentPage === totalPages" class="page-btn" @click="currentPage += 1">ถัดไป</button>
+          </div>
+          <div class="per-page-select">
+            <label>แสดง:</label>
+            <select v-model.number="itemsPerPage" class="page-size-select" @change="currentPage = 1">
+              <option :value="10">10</option>
+              <option :value="25">25</option>
+              <option :value="50">50</option>
+            </select>
+            <span>ต่อหน้า</span>
+          </div>
+        </div>
       </div>
 
       <div v-if="activeTab === 'users' && filteredUsers.length === 0" class="empty-state">
@@ -262,7 +318,7 @@
 
 <script>
 import MainNavbar from './MainNavbar.vue';
-import { adminResetUserPassword, createAdminUser, deleteAdminUser, fetchAdminUsers, getCurrentUser, updateAdminUserAccess } from '@/utils/auth';
+import { adminResetUserPassword, createAdminUser, deleteAdminUser, fetchAdminUsers, getCurrentUser, getUserAccessState, updateAdminUserAccess } from '@/utils/auth';
 import { fetchAdminPaymentSettings, fetchAdminPaymentSlips, readFileAsDataUrl, updateAdminPaymentSettings } from '@/utils/payment';
 
 export default {
@@ -303,6 +359,9 @@ export default {
       showResetPasswordModal: false,
       resetPasswordUser: null,
       showNewUsersWithSlipOnly: false,
+      searchQuery: '',
+      currentPage: 1,
+      itemsPerPage: 10,
       resetPasswordForm: {
         newPassword: '',
         confirmNewPassword: '',
@@ -333,10 +392,30 @@ export default {
       return this.activeTab === 'users' ? this.isLoading : this.isSavingPaymentSettings;
     },
     filteredUsers() {
-      if (!this.showNewUsersWithSlipOnly) {
-        return this.users;
+      let result = [...this.users];
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      if (this.searchQuery) {
+        const q = this.searchQuery.toLowerCase();
+        result = result.filter((user) => user.username.toLowerCase().includes(q));
       }
-      return this.users.filter((user) => user.new_user && this.getLatestSlipForUser(user));
+      if (this.showNewUsersWithSlipOnly) {
+        result = result.filter((user) => user.new_user && this.getLatestSlipForUser(user));
+      }
+      return result;
+    },
+    paginatedUsers() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      const end = start + this.itemsPerPage;
+      return this.filteredUsers.slice(start, end);
+    },
+    totalPages() {
+      return Math.max(1, Math.ceil(this.filteredUsers.length / this.itemsPerPage));
+    },
+    userStats() {
+      const total = this.users.length;
+      const active = this.users.filter((u) => !getUserAccessState(u).blocked).length;
+      const inactive = total - active;
+      return { total, active, inactive };
     },
   },
   methods: {
@@ -356,7 +435,8 @@ export default {
       this.errorMessage = '';
 
       try {
-        this.users = await fetchAdminUsers();
+        const fetchedUsers = await fetchAdminUsers();
+        this.users = fetchedUsers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       } catch (err) {
         this.errorMessage = err.message || 'ไม่สามารถโหลดผู้ใช้ได้';
       } finally {
@@ -533,6 +613,33 @@ export default {
     },
     clearExpireDate(user) {
       this.changeExpireDate(user, '');
+    },
+    async approveUser31Days(user) {
+      const date = new Date();
+      date.setDate(date.getDate() + 31);
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      const expireDate = `${yyyy}-${mm}-${dd}`;
+
+      this.setBusy(user.id, true);
+      this.errorMessage = '';
+      this.successMessage = '';
+
+      try {
+        const updatedUser = await updateAdminUserAccess({
+          userId: user.id,
+          locked: false,
+          expire_date: expireDate,
+        });
+        this.replaceUser(updatedUser);
+        this.successMessage = `อนุมัติ ${user.username} 31 วันแล้ว`;
+      } catch (err) {
+        this.errorMessage = err.message || 'ไม่สามารถอนุมัติ user ได้';
+        await this.loadUsers();
+      } finally {
+        this.setBusy(user.id, false);
+      }
     },
     async deleteUser(user) {
       this.setBusy(user.id, true);
@@ -1229,9 +1336,124 @@ h2 {
   cursor: pointer;
 }
 
+.stats-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  flex: 1;
+  min-width: 120px;
+  background: white;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+}
+
+.stat-card.stat-active {
+  border-color: #a7f3d0;
+  background: #f0fdf4;
+}
+
+.stat-card.stat-inactive {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.stat-active .stat-value {
+  color: #059669;
+}
+
+.stat-inactive .stat-value {
+  color: #dc2626;
+}
+
 .user-list {
   margin-top: 1em;
   overflow-x: auto;
+}
+
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.pagination-info {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.page-btn {
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  padding: 0.35rem 0.65rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  min-width: 2rem;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-btn.active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.per-page-select {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.page-size-select {
+  padding: 0.3rem 0.5rem;
+  border-radius: 5px;
+  border: 1px solid #d1d5db;
+  font-size: 0.85rem;
 }
 
 table {
@@ -1270,6 +1492,19 @@ th {
   font-size: 0.9rem;
   color: #374151;
   cursor: pointer;
+}
+
+.search-row {
+  margin-bottom: 0.75rem;
+}
+
+.search-input {
+  width: 100%;
+  max-width: 320px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
 }
 
 .expire-input {
@@ -1326,6 +1561,26 @@ th {
 
 .view-button:hover {
   background-color: #0056b3;
+}
+
+.approve-button {
+  border: none;
+  background-color: #10b981;
+  color: white;
+  padding: 0.4em 0.6em;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.approve-button:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+.approve-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .delete-button {
