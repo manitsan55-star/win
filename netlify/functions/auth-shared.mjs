@@ -701,7 +701,11 @@ export async function adminResetPassword({ userId, newPassword, actorId }) {
 export function sanitizeUsers(users) {
   return users
     .map((user) => sanitizeUser(user))
-    .sort((a, b) => a.username.localeCompare(b.username));
+    .sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
 }
 
 export function errorResponse(error) {
