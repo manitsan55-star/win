@@ -502,7 +502,12 @@ export async function getUserFromRequest(request) {
   }
 
   const token = authorization.slice('Bearer '.length);
-  const decoded = jwt.verify(token, getJwtSecret());
+  let decoded;
+  try {
+    decoded = jwt.verify(token, getJwtSecret());
+  } catch {
+    throw new Error('unauthorized');
+  }
   const user = await waitForTokenSessionUser(decoded.username, decoded.sessionId);
 
   if (!user) {

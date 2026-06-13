@@ -55,7 +55,9 @@ async function requestAuth(path, payload, token) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || 'Authentication failed');
+    const error = new Error(data.error || 'Authentication failed');
+    error.status = response.status;
+    throw error;
   }
 
   return data;
@@ -223,7 +225,7 @@ export async function restoreSession() {
     } catch (error) {
       lastError = error;
 
-      if (error.message !== 'Unauthorized' || attempt === 3) {
+      if (error.status !== 401 || attempt === 3) {
         break;
       }
 
@@ -231,8 +233,11 @@ export async function restoreSession() {
     }
   }
 
-  setAuthNotice(lastError?.message || 'Unauthorized');
-  logoutUser({ preserveNotice: true });
+  if (lastError?.status === 401) {
+    setAuthNotice(lastError?.message || 'Unauthorized');
+    logoutUser({ preserveNotice: true });
+  }
+
   throw lastError || new Error('Unauthorized');
 }
 
