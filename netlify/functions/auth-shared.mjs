@@ -619,11 +619,14 @@ export async function updateUserAccess({ userId, role, locked, new_user, expire_
     throw new Error('cannot_update_own_access');
   }
 
+  const isSettingExpireDate = expire_date !== undefined;
+  const hasValidExpireDate = normalizedExpireDate !== null;
+
   const updatedUser = {
     ...user,
     role: role ?? user.role,
     locked: locked ?? user.locked,
-    new_user: new_user ?? user.new_user,
+    new_user: new_user !== undefined ? new_user : (isSettingExpireDate && hasValidExpireDate ? false : user.new_user),
     expire_date: normalizedExpireDate,
   };
 
