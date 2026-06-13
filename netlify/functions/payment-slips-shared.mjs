@@ -29,6 +29,13 @@ function sanitizeSlipImage(value) {
   return value;
 }
 
+function getSlipType(user) {
+  if (user?.new_user) {
+    return 'signup';
+  }
+  return 'renewal';
+}
+
 function sanitizeSlipRecord(slip) {
   if (!slip) {
     return null;
@@ -39,6 +46,7 @@ function sanitizeSlipRecord(slip) {
     userId: typeof slip.userId === 'string' ? slip.userId : '',
     username: typeof slip.username === 'string' ? slip.username : '',
     imageData: typeof slip.imageData === 'string' ? slip.imageData : '',
+    type: typeof slip.type === 'string' ? slip.type : 'signup',
     createdAt: typeof slip.createdAt === 'string' ? slip.createdAt : new Date().toISOString(),
   };
 }
@@ -69,6 +77,7 @@ export async function createPaymentSlip({ user, imageData }) {
     userId: user.id,
     username: user.username,
     imageData: sanitizeSlipImage(imageData),
+    type: getSlipType(user),
     createdAt: new Date().toISOString(),
   });
 

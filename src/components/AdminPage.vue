@@ -31,6 +31,13 @@
         </button>
         <button
           type="button"
+          :class="['tab-button', { active: activeTab === 'create' }]"
+          @click="activeTab = 'create'"
+        >
+          เพิ่มผู้ใช้
+        </button>
+        <button
+          type="button"
           :class="['tab-button', { active: activeTab === 'payment' }]"
           @click="activeTab = 'payment'"
         >
@@ -76,7 +83,7 @@
         </button>
       </div>
 
-      <div v-if="activeTab === 'users'" class="create-user-card">
+      <div v-if="activeTab === 'create'" class="create-user-card">
         <h3>เพิ่มผู้ใช้</h3>
         <div class="create-user-grid">
           <input
@@ -131,10 +138,11 @@
         </div>
         <div class="search-row">
           <input v-model.trim="searchQuery" type="text" placeholder="ค้นหา username..." class="search-input" />
+          <button v-if="searchQuery" type="button" class="search-clear-button" @click="searchQuery = ''">ล้าง</button>
         </div>
         <label class="filter-toggle">
           <input v-model="showNewUsersWithSlipOnly" type="checkbox" />
-          <span>แสดงเฉพาะ user ใหม่ที่อัปโหลดสลิปแล้ว (รอแก้วันหมดอายุ)</span>
+          <span>แสดงเฉพาะ user ที่อัปโหลดสลิปแล้ว (รอแก้วันหมดอายุ)</span>
         </label>
         <table>
           <thead>
@@ -158,6 +166,7 @@
                   <img :src="getLatestSlipForUser(user).imageData" :alt="`สลิปของ ${user.username}`" class="user-slip-image" @click="openSlipModal(getLatestSlipForUser(user))" />
                   <div class="user-slip-meta">
                     <span>{{ formatDate(getLatestSlipForUser(user).createdAt) }}</span>
+                    <span :class="['slip-type-badge', getLatestSlipForUser(user).type]">{{ getLatestSlipForUser(user).type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span>
                   </div>
                 </div>
                 <span v-else class="user-slip-empty">ยังไม่มีสลิป</span>
@@ -192,7 +201,7 @@
                     :disabled="isBusy(user.id) || isCurrentUser(user.id)"
                     @change="changeLocked(user, $event.target.checked)"
                   />
-                  <span>{{ user.locked ? 'locked' : 'active' }}</span>
+                  <span>Locked</span>
                 </label>
               </td>
               <td>
@@ -203,7 +212,7 @@
                     :disabled="isBusy(user.id)"
                     @change="changeNewUser(user, $event.target.checked)"
                   />
-                  <span>{{ user.new_user ? 'new' : 'paid' }}</span>
+                  <span>New User</span>
                 </label>
               </td>
               <td>
@@ -273,7 +282,7 @@
       </div>
 
       <div v-if="activeTab === 'users' && filteredUsers.length === 0" class="empty-state">
-        {{ showNewUsersWithSlipOnly ? 'ไม่มี user ใหม่ที่อัปโหลดสลิปแล้ว' : 'ยังไม่มีผู้ใช้ในระบบ' }}
+        {{ showNewUsersWithSlipOnly ? 'ไม่มี user ที่อัปโหลดสลิปแล้ว' : 'ยังไม่มีผู้ใช้ในระบบ' }}
       </div>
     </div>
 
@@ -288,6 +297,7 @@
           <div v-if="selectedSlip" class="slip-modal-info">
             <p><strong>ผู้ใช้:</strong> {{ selectedSlip.username }}</p>
             <p><strong>เวลา:</strong> {{ formatDate(selectedSlip.createdAt) }}</p>
+            <p><strong>ประเภท:</strong> <span :class="['slip-type-badge', selectedSlip.type]">{{ selectedSlip.type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span></p>
           </div>
         </div>
       </div>
@@ -318,7 +328,7 @@
 
 <script>
 import MainNavbar from './MainNavbar.vue';
-import { adminResetUserPassword, createAdminUser, deleteAdminUser, fetchAdminUsers, getCurrentUser, getUserAccessState, updateAdminUserAccess } from '@/utils/auth';
+import { adminResetUserPassword, createAdminUser, deleteAdminUser, fetchAdminUsers, getCurrentUser, getUserAccessState, isUserExpired, updateAdminUserAccess } from '@/utils/auth';
 import { fetchAdminPaymentSettings, fetchAdminPaymentSlips, readFileAsDataUrl, updateAdminPaymentSettings } from '@/utils/payment';
 
 export default {
@@ -399,7 +409,7 @@ export default {
         result = result.filter((user) => user.username.toLowerCase().includes(q));
       }
       if (this.showNewUsersWithSlipOnly) {
-        result = result.filter((user) => user.new_user && this.getLatestSlipForUser(user));
+        result = result.filter((user) => this.getLatestSlipForUser(user));
       }
       return result;
     },
@@ -425,6 +435,10 @@ export default {
 
       if (this.activeTab === 'payment') {
         await this.loadPaymentSettings();
+        return;
+      }
+
+      if (this.activeTab === 'create') {
         return;
       }
 
@@ -615,11 +629,12 @@ export default {
       this.changeExpireDate(user, '');
     },
     async approveUser31Days(user) {
-      const date = new Date();
-      date.setDate(date.getDate() + 31);
-      const yyyy = date.getFullYear();
-      const mm = String(date.getMonth() + 1).padStart(2, '0');
-      const dd = String(date.getDate()).padStart(2, '0');
+      const hasValidExpireDate = user.expire_date && !isUserExpired(user);
+      const baseDate = hasValidExpireDate ? new Date(user.expire_date) : new Date();
+      baseDate.setDate(baseDate.getDate() + 31);
+      const yyyy = baseDate.getFullYear();
+      const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(baseDate.getDate()).padStart(2, '0');
       const expireDate = `${yyyy}-${mm}-${dd}`;
 
       this.setBusy(user.id, true);
@@ -1020,6 +1035,25 @@ h2 {
 .user-slip-meta {
   color: #4b5563;
   font-size: 0.85rem;
+}
+
+.slip-type-badge {
+  display: inline-block;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.35rem;
+}
+
+.slip-type-badge.signup {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.slip-type-badge.renewal {
+  background-color: #dcfce7;
+  color: #166534;
 }
 
 .user-slip-empty {
@@ -1503,6 +1537,9 @@ th {
 }
 
 .search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
 
@@ -1513,6 +1550,20 @@ th {
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 0.9rem;
+}
+
+.search-clear-button {
+  border: none;
+  background-color: #6b7280;
+  color: white;
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.search-clear-button:hover {
+  background-color: #4b5563;
 }
 
 .expire-input {
