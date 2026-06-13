@@ -115,6 +115,10 @@
       </div>
 
       <div v-if="activeTab === 'users' && users.length > 0" class="user-list">
+        <label class="filter-toggle">
+          <input v-model="showNewUsersWithSlipOnly" type="checkbox" />
+          <span>แสดงเฉพาะ user ใหม่ที่อัปโหลดสลิปแล้ว (รอแก้วันหมดอายุ)</span>
+        </label>
         <table>
           <thead>
             <tr>
@@ -129,7 +133,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in users" :key="user.id">
+            <tr v-for="user in filteredUsers" :key="user.id">
               <td>{{ user.username }}</td>
               <td>
                 <div v-if="getLatestSlipForUser(user)" class="user-slip-cell">
@@ -212,8 +216,8 @@
         </table>
       </div>
 
-      <div v-if="activeTab === 'users' && users.length === 0" class="empty-state">
-        ยังไม่มีผู้ใช้ในระบบ
+      <div v-if="activeTab === 'users' && filteredUsers.length === 0" class="empty-state">
+        {{ showNewUsersWithSlipOnly ? 'ไม่มี user ใหม่ที่อัปโหลดสลิปแล้ว' : 'ยังไม่มีผู้ใช้ในระบบ' }}
       </div>
     </div>
 
@@ -298,6 +302,7 @@ export default {
       selectedSlip: null,
       showResetPasswordModal: false,
       resetPasswordUser: null,
+      showNewUsersWithSlipOnly: false,
       resetPasswordForm: {
         newPassword: '',
         confirmNewPassword: '',
@@ -326,6 +331,12 @@ export default {
     },
     isRefreshDisabled() {
       return this.activeTab === 'users' ? this.isLoading : this.isSavingPaymentSettings;
+    },
+    filteredUsers() {
+      if (!this.showNewUsersWithSlipOnly) {
+        return this.users;
+      }
+      return this.users.filter((user) => user.new_user && this.getLatestSlipForUser(user));
     },
   },
   methods: {
@@ -1249,6 +1260,16 @@ th {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  color: #374151;
+  cursor: pointer;
 }
 
 .expire-input {

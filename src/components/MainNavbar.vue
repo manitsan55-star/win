@@ -9,6 +9,7 @@
       <button v-if="!username" type="button" class="mobile-login-button mobile-only" @click="$emit('open-auth-modal', 'login')">เข้าสู่ระบบ</button>
     </div>
     <div v-if="username" class="user-info">
+      <button type="button" class="contact-admin-button" @click="openContactModal">ติดต่อแอดมิน</button>
       <div class="user-panel" :class="{ 'mobile-open': isMobileDetailsOpen }">
         <router-link v-if="isAdminUser" to="/admin" class="admin-link">จัดการผู้ใช้</router-link>
         <div class="user-meta">
@@ -26,6 +27,7 @@
       </div>
     </div>
     <div v-else class="user-info">
+      <button type="button" class="contact-admin-button" @click="openContactModal">ติดต่อแอดมิน</button>
       <button class="login-button desktop-only" @click="$emit('open-auth-modal', 'login')">เข้าสู่ระบบ</button>
     </div>
 
@@ -53,6 +55,21 @@
         </form>
       </div>
     </div>
+
+    <div v-if="showContactModal" class="modal-overlay" @click="closeContactModal">
+      <div class="modal-card contact-modal-card" @click.stop>
+        <h3>ติดต่อแอดมิน</h3>
+        <div class="contact-body">
+          <p class="contact-line-id">LINE ID: <strong>@837rbsna</strong></p>
+          <a href="https://lin.ee/5LBHns4" target="_blank" rel="noopener noreferrer" class="contact-line-link">
+            <span class="line-icon">LINE</span> เพิ่มเพื่อน/แชท
+          </a>
+        </div>
+        <div class="action-row">
+          <button type="button" class="secondary-button" @click="closeContactModal">ปิด</button>
+        </div>
+      </div>
+    </div>
   </nav>
 </template>
 
@@ -72,6 +89,7 @@ export default {
       accessStatusClass: '',
       isMobileDetailsOpen: false,
       showPasswordModal: false,
+      showContactModal: false,
       passwordForm: {
         currentPassword: '',
         newPassword: '',
@@ -145,6 +163,12 @@ export default {
         confirmNewPassword: '',
       };
       this.passwordErrorMessage = '';
+    },
+    openContactModal() {
+      this.showContactModal = true;
+    },
+    closeContactModal() {
+      this.showContactModal = false;
     },
     async submitPasswordChange() {
       if (!this.passwordForm.currentPassword || !this.passwordForm.newPassword || !this.passwordForm.confirmNewPassword) {
@@ -320,6 +344,60 @@ export default {
 
 .change-password-button:hover {
   background-color: #4b5563;
+}
+
+.contact-admin-button {
+  border: none;
+  background-color: #10b981;
+  color: white;
+  padding: 0.3em 0.6em;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.contact-admin-button:hover {
+  background-color: #059669;
+}
+
+.contact-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.contact-line-id {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.contact-line-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #06c755;
+  color: white;
+  text-decoration: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.contact-line-link:hover {
+  background-color: #05b34b;
+}
+
+.line-icon {
+  background: white;
+  color: #06c755;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .modal-overlay {
