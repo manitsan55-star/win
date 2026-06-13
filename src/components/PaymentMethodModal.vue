@@ -3,39 +3,35 @@
     <div class="payment-modal-card">
       <div class="payment-header">
         <h2>วิธีชำระเงิน</h2>
-        <button type="button" class="close-button" @click="$emit('close')">ปิด</button>
+        <button type="button" class="close-button" @click="$emit('close')">&times;</button>
       </div>
 
       <p class="payment-message">{{ settings.paymentMessage }}</p>
 
-      <div class="price-card">
-        <h3>ราคา</h3>
-        <div class="price-list">
-          <div class="price-item">เดือนละ 200</div>
-          <div class="price-item">ปีละ 2000</div>
-        </div>
+      <div class="price-row">
+        <span class="price-tag">เดือน 200฿</span>
+        <span class="price-tag">ปี 2,000฿</span>
       </div>
 
-      <div class="payment-grid">
-        <div class="payment-card">
-          <h3>QR Code โอนเงิน</h3>
-          <img v-if="settings.transferQrImage" :src="settings.transferQrImage" alt="QR Code โอนเงิน" class="payment-image" />
-          <div v-else class="payment-placeholder">ยังไม่มี QR Code โอนเงิน</div>
-        </div>
+      <div class="qr-section">
+        <h3>QR Code โอนเงิน</h3>
+        <img v-if="settings.transferQrImage" :src="settings.transferQrImage" alt="QR Code" class="qr-image" />
+        <div v-else class="qr-placeholder">ยังไม่มี QR Code</div>
       </div>
 
-      <p class="payment-note">โอนเงินเรียบร้อยแล้ว กรุณาอัปโหลดสลิปการโอนเงินด้านล่าง</p>
+      <p class="payment-note">โอนแล้วอัปโหลดสลิปด้านล่าง</p>
 
-      <div class="slip-upload-card">
-        <h3>อัปโหลดสลิปการโอนเงิน</h3>
-        <p class="slip-upload-note">หลังอัปโหลดแล้ว แอดมินจะเห็นสลิปนี้ในหน้าแอดมินทันที</p>
-        <input type="file" accept="image/*" class="slip-input" :disabled="isSubmitting" @change="handleSlipChange" />
-        <img v-if="slipPreview" :src="slipPreview" alt="Slip preview" class="slip-preview-image" />
-        <div v-else class="payment-placeholder slip-placeholder">ยังไม่ได้เลือกไฟล์สลิป</div>
-        <div v-if="errorMessage" class="slip-error">{{ errorMessage }}</div>
-        <div v-if="successMessage" class="slip-success">{{ successMessage }}</div>
-        <button type="button" class="upload-button" :disabled="isSubmitting || !slipPreview" @click="submitSlip">
-          {{ isSubmitting ? 'กำลังอัปโหลด...' : 'ส่งสลิปให้แอดมิน' }}
+      <div class="slip-section">
+        <h3>อัปโหลดสลิป</h3>
+        <label class="file-label">
+          <input type="file" accept="image/*" :disabled="isSubmitting" @change="handleSlipChange" />
+          <span>{{ isSubmitting ? 'กำลังอัปโหลด...' : 'เลือกไฟล์สลิป' }}</span>
+        </label>
+        <img v-if="slipPreview" :src="slipPreview" alt="Slip preview" class="slip-thumb" />
+        <div v-if="errorMessage" class="msg error">{{ errorMessage }}</div>
+        <div v-if="successMessage" class="msg success">{{ successMessage }}</div>
+        <button type="button" class="upload-btn" :disabled="isSubmitting || !slipPreview" @click="submitSlip">
+          ส่งสลิปให้แอดมิน
         </button>
       </div>
     </div>
@@ -124,7 +120,7 @@ export default {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -133,150 +129,159 @@ export default {
 }
 
 .payment-modal-card {
-  width: min(720px, 100%);
-  max-height: 90vh;
+  width: min(480px, 100%);
+  max-height: 85vh;
   overflow-y: auto;
-  background-color: white;
+  background: #fff;
   border-radius: 12px;
   padding: 1.25rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 .payment-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
-.payment-message,
-.payment-note {
+.payment-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.close-button {
+  background: transparent;
+  border: none;
+  font-size: 1.6rem;
+  color: #6b7280;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.payment-message {
+  margin: 0 0 0.75rem;
   color: #374151;
-  line-height: 1.6;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
-.payment-grid {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr);
-  gap: 1rem;
-  margin: 1rem 0;
-}
-
-.price-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 1rem;
-  background-color: #f9fafb;
-}
-
-.price-list {
+.price-row {
   display: flex;
-  flex-direction: column;
   gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
-.price-item {
+.price-tag {
+  flex: 1;
+  text-align: center;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 0.5rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #111827;
 }
 
-.payment-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 1rem;
-  background-color: #f9fafb;
+.qr-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
 }
 
-.payment-image {
+.qr-image {
   width: 100%;
+  max-width: 220px;
+  display: block;
+  margin: 0 auto;
   border-radius: 8px;
   object-fit: contain;
-  background-color: white;
 }
 
-.payment-placeholder {
-  min-height: 220px;
+.qr-placeholder {
+  height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #6b7280;
-  background-color: white;
+  background: #f9fafb;
   border-radius: 8px;
   border: 1px dashed #d1d5db;
-  text-align: center;
-  padding: 1rem;
+  font-size: 0.85rem;
 }
 
-.slip-upload-card {
-  margin-top: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 1rem;
-  background-color: #f9fafb;
-}
-
-.slip-upload-note {
+.payment-note {
+  margin: 0.75rem 0;
   color: #4b5563;
-  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  text-align: center;
 }
 
-.slip-input {
-  width: 100%;
-  margin-bottom: 0.75rem;
+.slip-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
 }
 
-.slip-preview-image {
+.file-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   width: 100%;
-  max-height: 360px;
+  padding: 0.55rem;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  color: #374151;
+  font-size: 0.85rem;
+  cursor: pointer;
+  background: #f9fafb;
+  box-sizing: border-box;
+}
+
+.file-label input {
+  display: none;
+}
+
+.slip-thumb {
+  width: 100%;
+  max-height: 160px;
   object-fit: contain;
-  border-radius: 8px;
-  background-color: white;
-  margin-bottom: 0.75rem;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+  background: #f9fafb;
 }
 
-.slip-placeholder {
-  min-height: 160px;
-  margin-bottom: 0.75rem;
+.msg {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
 }
 
-.slip-error,
-.slip-success {
-  margin-bottom: 0.75rem;
-  padding: 0.75rem;
-  border-radius: 8px;
-}
-
-.slip-error {
-  background-color: #fee2e2;
+.msg.error {
+  background: #fee2e2;
   color: #991b1b;
 }
 
-.slip-success {
-  background-color: #dcfce7;
+.msg.success {
+  background: #dcfce7;
   color: #166534;
 }
 
-.upload-button {
+.upload-btn {
+  width: 100%;
+  margin-top: 0.75rem;
   border: none;
-  background-color: #059669;
+  background: #059669;
   color: white;
-  padding: 0.75rem 1rem;
+  padding: 0.6rem;
   border-radius: 6px;
   cursor: pointer;
+  font-size: 0.9rem;
 }
 
-.upload-button:disabled,
-.slip-input:disabled {
-  opacity: 0.6;
+.upload-btn:disabled {
+  opacity: 0.55;
   cursor: not-allowed;
-}
-
-.close-button {
-  border: none;
-  background-color: #ef4444;
-  color: white;
-  padding: 0.45rem 0.85rem;
-  border-radius: 6px;
-  cursor: pointer;
 }
 </style>
