@@ -148,6 +148,10 @@
           <input v-model="showUsersWithSlipOnly" type="checkbox" />
           <span>แสดง user ที่อัปโหลดสลิปแล้ว</span>
         </label>
+        <label class="filter-toggle">
+          <input v-model="showRenewalUsersWithSlipOnly" type="checkbox" />
+          <span>แสดง user ที่ต่ออายุ</span>
+        </label>
         <table>
           <thead>
             <tr>
@@ -286,7 +290,7 @@
       </div>
 
       <div v-if="activeTab === 'users' && filteredUsers.length === 0" class="empty-state">
-        {{ showNewUsersWithSlipOnly || showUsersWithSlipOnly ? 'ไม่มี user ที่อัปโหลดสลิปแล้ว' : 'ยังไม่มีผู้ใช้ในระบบ' }}
+        {{ showNewUsersWithSlipOnly || showUsersWithSlipOnly || showRenewalUsersWithSlipOnly ? 'ไม่มี user ที่อัปโหลดสลิปแล้ว' : 'ยังไม่มีผู้ใช้ในระบบ' }}
       </div>
     </div>
 
@@ -373,6 +377,7 @@ export default {
       resetPasswordUser: null,
       showNewUsersWithSlipOnly: false,
       showUsersWithSlipOnly: false,
+      showRenewalUsersWithSlipOnly: false,
       searchQuery: '',
       currentPage: 1,
       itemsPerPage: 10,
@@ -413,6 +418,12 @@ export default {
       }
       if (this.showUsersWithSlipOnly) {
         result = result.filter((user) => this.getLatestSlipForUser(user));
+      }
+      if (this.showRenewalUsersWithSlipOnly) {
+        result = result.filter((user) => {
+          const slip = this.getLatestSlipForUser(user);
+          return slip && slip.type === 'renewal';
+        });
       }
       return result;
     },
