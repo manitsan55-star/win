@@ -31,12 +31,6 @@ function getTodayDateOnly() {
   return [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
 }
 
-function delay(milliseconds) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, milliseconds);
-  });
-}
-
 async function requestAuth(path, payload, token) {
   const headers = {
     'Content-Type': 'application/json',
@@ -213,32 +207,20 @@ export async function restoreSession() {
     return null;
   }
 
-  let lastError = null;
-
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    try {
-      const data = await requestAuth('/me', null, token);
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(data.user));
-      setAuthNotice('');
-      emitAuthChanged();
-      return data.user;
-    } catch (error) {
-      lastError = error;
-
-      if (error.status !== 401 || attempt === 3) {
-        break;
-      }
-
-      await delay(300);
+  try {
+    const data = await requestAuth('/me', null, token);
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(data.user));
+    setAuthNotice('');
+    emitAuthChanged();
+    return data.user;
+  } catch (error) {
+    if (error.status === 401) {
+      setAuthNotice(error.message || 'Unauthorized');
+      logoutUser({ preserveNotice: true });
     }
-  }
 
-  if (lastError?.status === 401) {
-    setAuthNotice(lastError?.message || 'Unauthorized');
-    logoutUser({ preserveNotice: true });
+    throw error;
   }
-
-  throw lastError || new Error('Unauthorized');
 }
 
 export function logoutUser(options = {}) {

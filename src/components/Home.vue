@@ -372,7 +372,7 @@
 import AuthModal from '@/components/AuthModal.vue';
 import MainNavbar from '@/components/MainNavbar.vue';
 import PaymentMethodModal from '@/components/PaymentMethodModal.vue';
-import { consumeAuthNotice, getCurrentUser, getUserAccessState, isAuthenticated } from '@/utils/auth';
+import { consumeAuthNotice, getCurrentUser, getUserAccessState, isAuthenticated, restoreSession } from '@/utils/auth';
 import { fetchPaymentSettings } from '@/utils/payment';
 
 export default {
@@ -988,6 +988,12 @@ export default {
       if (!isAuthenticated()) {
         this.pendingCalculation = true;
         this.openAuthModal('login');
+        return;
+      }
+
+      try {
+        await restoreSession();
+      } catch (error) {
         return;
       }
 
