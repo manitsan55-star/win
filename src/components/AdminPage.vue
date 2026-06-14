@@ -142,7 +142,11 @@
         </div>
         <label class="filter-toggle">
           <input v-model="showNewUsersWithSlipOnly" type="checkbox" />
-          <span>แสดงเฉพาะ user ที่อัปโหลดสลิปแล้ว (รอแก้วันหมดอายุ)</span>
+          <span>แสดงเฉพาะ user ใหม่ที่อัปโหลดสลิปแล้ว (รอแก้วันหมดอายุ)</span>
+        </label>
+        <label class="filter-toggle">
+          <input v-model="showUsersWithSlipOnly" type="checkbox" />
+          <span>แสดง user ที่อัปโหลดสลิปแล้ว</span>
         </label>
         <table>
           <thead>
@@ -282,7 +286,7 @@
       </div>
 
       <div v-if="activeTab === 'users' && filteredUsers.length === 0" class="empty-state">
-        {{ showNewUsersWithSlipOnly ? 'ไม่มี user ที่อัปโหลดสลิปแล้ว' : 'ยังไม่มีผู้ใช้ในระบบ' }}
+        {{ showNewUsersWithSlipOnly || showUsersWithSlipOnly ? 'ไม่มี user ที่อัปโหลดสลิปแล้ว' : 'ยังไม่มีผู้ใช้ในระบบ' }}
       </div>
     </div>
 
@@ -368,6 +372,7 @@ export default {
       showResetPasswordModal: false,
       resetPasswordUser: null,
       showNewUsersWithSlipOnly: false,
+      showUsersWithSlipOnly: false,
       searchQuery: '',
       currentPage: 1,
       itemsPerPage: 10,
@@ -404,6 +409,9 @@ export default {
         result = result.filter((user) => user.username.toLowerCase().includes(q));
       }
       if (this.showNewUsersWithSlipOnly) {
+        result = result.filter((user) => user.new_user && this.getLatestSlipForUser(user));
+      }
+      if (this.showUsersWithSlipOnly) {
         result = result.filter((user) => this.getLatestSlipForUser(user));
       }
       return result;
