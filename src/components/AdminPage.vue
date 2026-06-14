@@ -361,7 +361,6 @@ export default {
       },
       lastCheckedSlipTimestamp: null,
       newSlipCount: 0,
-      slipPollingInterval: null,
       soundEnabled: true,
       audioContext: null,
       showSlipModal: false,
@@ -385,10 +384,6 @@ export default {
     this.loadUsers();
     this.loadPaymentSettings();
     this.loadPaymentSlips();
-    this.startSlipPolling();
-  },
-  beforeUnmount() {
-    this.stopSlipPolling();
   },
   computed: {
     refreshButtonText() {
@@ -690,18 +685,6 @@ export default {
     },
     dismissNotification() {
       this.newSlipCount = 0;
-    },
-    startSlipPolling() {
-      this.stopSlipPolling();
-      this.slipPollingInterval = setInterval(() => {
-        this.loadPaymentSlips();
-      }, 30000);
-    },
-    stopSlipPolling() {
-      if (this.slipPollingInterval) {
-        clearInterval(this.slipPollingInterval);
-        this.slipPollingInterval = null;
-      }
     },
     playNotificationSound() {
       if (!this.soundEnabled) {
