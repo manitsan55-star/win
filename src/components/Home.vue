@@ -1022,9 +1022,15 @@ export default {
     closePaymentModal() {
       this.showPaymentModal = false;
     },
-    calculatePakLak() {
+    async calculatePakLak() {
       if (!isAuthenticated()) {
         this.openAuthModal('login');
+        return;
+      }
+
+      try {
+        await restoreSession();
+      } catch (error) {
         return;
       }
 
@@ -1034,38 +1040,66 @@ export default {
     togglePakLakDropdown() {
       this.showPakLakDropdown = !this.showPakLakDropdown;
     },
-    calculatePakLak3Digit() {
+    async calculatePakLak3Digit() {
       if (!isAuthenticated()) {
         this.openAuthModal('login');
         return;
       }
+
+      try {
+        await restoreSession();
+      } catch (error) {
+        return;
+      }
+
       this.showPakLakDropdown = false;
       this.pakLakResults = [];
       this.pakLakResults = this.calculatePakLakNumbers(this.inputNumbers);
     },
-    calculatePakLak3DigitIncludeHam() {
+    async calculatePakLak3DigitIncludeHam() {
       if (!isAuthenticated()) {
         this.openAuthModal('login');
         return;
       }
+
+      try {
+        await restoreSession();
+      } catch (error) {
+        return;
+      }
+
       this.showPakLakDropdown = false;
       this.pakLakResults = [];
       this.pakLakResults = this.calculatePakLakNumbersIncludeHam(this.inputNumbers);
     },
-    calculatePakLak2Digit() {
+    async calculatePakLak2Digit() {
       if (!isAuthenticated()) {
         this.openAuthModal('login');
         return;
       }
+
+      try {
+        await restoreSession();
+      } catch (error) {
+        return;
+      }
+
       this.showPakLakDropdown = false;
       this.pakLakResults = [];
       this.pakLakResults = this.calculatePakLak2DigitNumbers(this.inputNumbers);
     },
-    calculatePakLak2DigitIncludeHam() {
+    async calculatePakLak2DigitIncludeHam() {
       if (!isAuthenticated()) {
         this.openAuthModal('login');
         return;
       }
+
+      try {
+        await restoreSession();
+      } catch (error) {
+        return;
+      }
+
       this.showPakLakDropdown = false;
       this.pakLakResults = [];
       this.pakLakResults = this.calculatePakLak2DigitNumbersIncludeHam(this.inputNumbers);
