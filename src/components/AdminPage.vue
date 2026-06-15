@@ -200,7 +200,6 @@
                       >
                         ดูสลิป
                       </a>
-                      <span :class="['slip-type-badge', getLatestSlipForUser(user).type]">{{ getLatestSlipForUser(user).type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span>
                     </div>
                   </template>
                 </div>
