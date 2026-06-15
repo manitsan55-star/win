@@ -186,27 +186,18 @@
                       <span :class="['slip-type-badge', getLatestSlipForUser(user).type]">{{ getLatestSlipForUser(user).type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span>
                     </div>
                   </template>
-                  <!-- Existing user: show date and button to load image -->
+                  <!-- Existing user: clickable date to open modal directly -->
                   <template v-else>
                     <div class="user-slip-meta-existing">
-                      <span>อัปโหลด {{ formatDate(getLatestSlipForUser(user).createdAt) }}</span>
-                      <span :class="['slip-type-badge', getLatestSlipForUser(user).type]">{{ getLatestSlipForUser(user).type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span>
-                      <button
-                        v-if="!getLatestSlipForUser(user).imageData"
-                        type="button"
-                        class="view-slip-button"
-                        :disabled="isSlipLoading(getLatestSlipForUser(user).id)"
-                        @click="loadFullSlip(getLatestSlipForUser(user).id)"
+                      <a
+                        href="#"
+                        class="slip-date-link"
+                        :class="{ loading: isSlipLoading(getLatestSlipForUser(user).id) }"
+                        @click.prevent="onSlipDateClick(getLatestSlipForUser(user))"
                       >
-                        {{ isSlipLoading(getLatestSlipForUser(user).id) ? 'กำลังโหลด...' : 'ดูสลิป' }}
-                      </button>
-                      <img
-                        v-else
-                        :src="getLatestSlipForUser(user).imageData"
-                        :alt="`สลิปของ ${user.username}`"
-                        class="user-slip-image"
-                        @click="openSlipModal(getLatestSlipForUser(user))"
-                      />
+                        {{ formatDate(getLatestSlipForUser(user).createdAt) }}
+                      </a>
+                      <span :class="['slip-type-badge', getLatestSlipForUser(user).type]">{{ getLatestSlipForUser(user).type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span>
                     </div>
                   </template>
                 </div>
@@ -760,6 +751,27 @@ export default {
     isSlipLoading(slipId) {
       return this.loadingSlipIds.has(slipId);
     },
+    async onSlipDateClick(slip) {
+      if (this.loadingSlipIds.has(slip.id)) {
+        return;
+      }
+      // If already loaded, open directly
+      if (slip.imageData) {
+        this.openSlipModal(slip);
+        return;
+      }
+      // Load full slip then open modal
+      this.loadingSlipIds.add(slip.id);
+      try {
+        const fullSlip = await fetchAdminPaymentSlipById(slip.id);
+        this.userSlipsByUserId[fullSlip.userId] = fullSlip;
+        this.openSlipModal(fullSlip);
+      } catch (err) {
+        console.error('Failed to load slip:', err);
+      } finally {
+        this.loadingSlipIds.delete(slip.id);
+      }
+    },
     dismissNotification() {
       this.newSlipCount = 0;
     },
@@ -1125,25 +1137,27 @@ h2 {
 
 .user-slip-meta-existing {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   gap: 0.5rem;
   color: #4b5563;
   font-size: 0.85rem;
+  flex-wrap: wrap;
 }
 
-.view-slip-button {
-  padding: 0.25rem 0.5rem;
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 4px;
+.slip-date-link {
+  color: #2563eb;
+  text-decoration: underline;
   cursor: pointer;
-  font-size: 0.8rem;
 }
 
-.view-slip-button:disabled {
+.slip-date-link:hover {
+  color: #1d4ed8;
+}
+
+.slip-date-link.loading {
   opacity: 0.6;
-  cursor: not-allowed;
+  cursor: wait;
 }
 
 .slip-type-badge {
