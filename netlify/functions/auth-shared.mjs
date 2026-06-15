@@ -244,20 +244,6 @@ async function waitForTokenSessionUser(username, sessionId, attempts = 8) {
   return latestUser;
 }
 
-async function waitForSessionPersistence(username, sessionId, attempts = 5) {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const user = await findUserByUsername(username);
-
-    if (user?.currentSessionId === sessionId) {
-      return user;
-    }
-
-    await delay(150);
-  }
-
-  return null;
-}
-
 export async function ensureSeedAdmin() {
   if (_seedAdminVerified) {
     return null;
@@ -466,7 +452,6 @@ async function startUserSession(user) {
 
   if (!isAdmin) {
     await saveUser(updatedUser);
-    await waitForSessionPersistence(updatedUser.username, updatedUser.currentSessionId);
   }
 
   return {
