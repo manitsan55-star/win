@@ -213,20 +213,6 @@ function assertUserCanAccess(user) {
   }
 }
 
-async function waitForUserPersistence(username, attempts = 5) {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const user = await findUserByUsername(username);
-
-    if (user) {
-      return user;
-    }
-
-    await delay(150);
-  }
-
-  return null;
-}
-
 async function waitForTokenSessionUser(username, sessionId, attempts = 8) {
   let latestUser = null;
 
@@ -323,8 +309,8 @@ export async function createUser({ username, password, confirmPassword }) {
     throw new Error('username นี้ถูกใช้งานแล้ว');
   }
 
-  const users = await listUsers();
-  const role = users.length === 0 ? 'admin' : 'user';
+  const indexedUsers = await getUserIndex();
+  const role = indexedUsers.length === 0 ? 'admin' : 'user';
 
   const passwordHash = await bcrypt.hash(password, 10);
   const user = {
@@ -349,9 +335,7 @@ export async function createUser({ username, password, confirmPassword }) {
 
   await addUsernameToIndex(trimmedUsername);
 
-  const persistedUser = (await waitForUserPersistence(trimmedUsername)) || user;
-
-  return persistedUser;
+  return user;
 }
 
 export async function createUserByAdmin({ username, password, role, locked, new_user, expire_date }) {
@@ -406,9 +390,7 @@ export async function createUserByAdmin({ username, password, role, locked, new_
 
   await addUsernameToIndex(trimmedUsername);
 
-  const persistedUser = (await waitForUserPersistence(trimmedUsername)) || user;
-
-  return sanitizeUser(persistedUser);
+  return sanitizeUser(user);
 }
 
 async function verifyUserCredentials({ username, password }) {
