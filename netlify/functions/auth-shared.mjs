@@ -9,7 +9,7 @@ const AVAILABLE_ROLES = ['admin', 'vip', 'user'];
 
 let _usersCache = null;
 let _usersCacheTime = 0;
-const USERS_CACHE_TTL = 30000;
+const USERS_CACHE_TTL = 300000;
 
 let _seedAdminVerified = false;
 
@@ -602,16 +602,28 @@ export async function listUsers() {
 
   let hydratedUsers;
   if (indexedUsernames.length > 0) {
-    const users = await Promise.all(
-      indexedUsernames.map((username) => getStoreInstance().get(getUserKey(username), { type: 'json' }))
-    );
-    hydratedUsers = users.filter(Boolean);
+    const batchSize = 100;
+    const allUsers = [];
+    for (let i = 0; i < indexedUsernames.length; i += batchSize) {
+      const batch = indexedUsernames.slice(i, i + batchSize);
+      const batchUsers = await Promise.all(
+        batch.map((username) => getStoreInstance().get(getUserKey(username), { type: 'json' }))
+      );
+      allUsers.push(...batchUsers);
+    }
+    hydratedUsers = allUsers.filter(Boolean);
   } else {
     const { blobs } = await getStoreInstance().list({ prefix: USER_KEY_PREFIX });
-    const users = await Promise.all(
-      blobs.map(({ key }) => getStoreInstance().get(key, { type: 'json' }))
-    );
-    hydratedUsers = users.filter(Boolean);
+    const batchSize = 100;
+    const allUsers = [];
+    for (let i = 0; i < blobs.length; i += batchSize) {
+      const batch = blobs.slice(i, i + batchSize);
+      const batchUsers = await Promise.all(
+        batch.map(({ key }) => getStoreInstance().get(key, { type: 'json' }))
+      );
+      allUsers.push(...batchUsers);
+    }
+    hydratedUsers = allUsers.filter(Boolean);
 
     if (hydratedUsers.length > 0) {
       await saveUserIndex(hydratedUsers.map((user) => user.username));

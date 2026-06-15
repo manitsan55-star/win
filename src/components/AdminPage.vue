@@ -464,6 +464,7 @@ export default {
         return;
       }
 
+      this.showAllUsers = false;
       await Promise.all([this.loadUsers(), this.loadPaymentSlips()]);
     },
     async loadUsers() {
