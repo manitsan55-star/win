@@ -190,19 +190,15 @@
                       <span :class="['slip-type-badge', getLatestSlipForUser(user).type]">{{ getLatestSlipForUser(user).type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span>
                     </div>
                   </template>
-                  <!-- Existing user: clickable date to open modal directly -->
+                  <!-- Existing user: click to view all slips -->
                   <template v-else>
                     <div class="user-slip-meta-existing">
                       <a
                         href="#"
                         class="slip-date-link"
-                        :class="{
-                          loading: isSlipLoading(getLatestSlipForUser(user).id),
-                          renewal: getLatestSlipForUser(user).type === 'renewal'
-                        }"
                         @click.prevent="onSlipDateClick(user)"
                       >
-                        {{ formatDate(getLatestSlipForUser(user).createdAt) }}
+                        ดูสลิป
                       </a>
                       <span :class="['slip-type-badge', getLatestSlipForUser(user).type]">{{ getLatestSlipForUser(user).type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span>
                     </div>
@@ -360,19 +356,26 @@
                 class="slip-date-link-popup"
                 :class="{
                   loading: isSlipLoading(slip.id),
-                  renewal: slip.type === 'renewal'
+                  renewal: slip.type === 'renewal',
+                  active: visibleSlipImageIds.has(slip.id)
                 }"
-                @click.prevent="onPopupSlipClick(slip)"
+                @click.prevent="toggleSlipImage(slip)"
               >
                 {{ formatDate(slip.createdAt) }}
               </a>
               <span :class="['slip-type-badge', slip.type]">{{ slip.type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span>
             </div>
-            <div v-if="!slip.imageData" class="slip-item-placeholder">
-              <span v-if="isSlipLoading(slip.id)" class="loading-text">กำลังโหลด...</span>
-              <span v-else class="click-hint">กดที่วันที่เพื่อดูสลิป</span>
+            <div v-if="visibleSlipImageIds.has(slip.id)" class="slip-image-wrapper">
+              <div v-if="isSlipLoading(slip.id)" class="slip-loading-indicator">
+                กำลังโหลด...
+              </div>
+              <img
+                v-else-if="slip.imageData"
+                :src="slip.imageData"
+                :alt="`สลิป ${slip.createdAt}`"
+                class="slip-item-image"
+              />
             </div>
-            <img v-else :src="slip.imageData" :alt="`สลิป ${slip.createdAt}`" class="slip-item-image" @click="openSlipModal(slip)" />
           </div>
         </div>
       </div>
@@ -445,6 +448,7 @@ export default {
       selectedUserForSlips: null,
       userAllSlips: [],
       loadingSlipIds: new Set(),
+      visibleSlipImageIds: new Set(),
       showResetPasswordModal: false,
       resetPasswordUser: null,
       showNewUsersWithSlipOnly: false,
@@ -796,20 +800,6 @@ export default {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
     },
-    async loadFullSlip(slipId) {
-      if (this.loadingSlipIds.has(slipId)) {
-        return;
-      }
-      this.loadingSlipIds.add(slipId);
-      try {
-        const fullSlip = await fetchAdminPaymentSlipById(slipId);
-        this.userSlipsByUserId[fullSlip.userId] = fullSlip;
-      } catch (err) {
-        console.error('Failed to load slip:', err);
-      } finally {
-        this.loadingSlipIds.delete(slipId);
-      }
-    },
     isSlipLoading(slipId) {
       return this.loadingSlipIds.has(slipId);
     },
@@ -832,6 +822,18 @@ export default {
       this.showAllSlipsModal = false;
       this.selectedUserForSlips = null;
       this.userAllSlips = [];
+      this.visibleSlipImageIds.clear();
+    },
+    async toggleSlipImage(slip) {
+      if (this.visibleSlipImageIds.has(slip.id)) {
+        this.visibleSlipImageIds.delete(slip.id);
+        return;
+      }
+      this.visibleSlipImageIds.add(slip.id);
+      // Load image if not already loaded
+      if (!slip.imageData && !this.loadingSlipIds.has(slip.id)) {
+        await this.loadAndShowSlipImage(slip);
+      }
     },
     async loadAndShowSlipImage(slip) {
       if (this.loadingSlipIds.has(slip.id)) {
@@ -854,14 +856,6 @@ export default {
         console.error('Failed to load slip image:', err);
       } finally {
         this.loadingSlipIds.delete(slip.id);
-      }
-    },
-    onPopupSlipClick(slip) {
-      // If already loaded, open full view; otherwise load the image
-      if (slip.imageData) {
-        this.openSlipModal(slip);
-      } else {
-        this.loadAndShowSlipImage(slip);
       }
     },
     dismissNotification() {
@@ -1289,22 +1283,20 @@ h2 {
   color: #c2410c;
 }
 
-.slip-item-placeholder {
-  text-align: center;
-  padding: 1rem;
-  color: #9ca3af;
-  font-size: 0.9rem;
-  background-color: #f3f4f6;
-  border-radius: 6px;
+.slip-date-link-popup.active {
+  font-weight: 700;
+}
+
+.slip-image-wrapper {
   margin-top: 0.5rem;
 }
 
-.loading-text {
-  color: #2563eb;
-}
-
-.click-hint {
-  color: #9ca3af;
+.slip-loading-indicator {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  background-color: #f3f4f6;
+  border-radius: 6px;
 }
 
 .slip-type-badge {
