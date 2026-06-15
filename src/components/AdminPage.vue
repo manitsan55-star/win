@@ -184,7 +184,8 @@
                 <div v-if="getLatestSlipForUser(user)" class="user-slip-cell">
                   <!-- New user: show image immediately -->
                   <template v-if="user.new_user">
-                    <img :src="getLatestSlipForUser(user).imageData || ''" :alt="`สลิปของ ${user.username}`" class="user-slip-image" @click="openSlipModal(getLatestSlipForUser(user))" />
+                    <img v-if="getLatestSlipForUser(user).imageData" :src="getLatestSlipForUser(user).imageData" :alt="`สลิปของ ${user.username}`" class="user-slip-image" @click="openSlipModal(getLatestSlipForUser(user))" />
+                    <div v-else class="user-slip-loading">กำลังโหลดรูป...</div>
                     <div class="user-slip-meta">
                       <span>{{ formatDate(getLatestSlipForUser(user).createdAt) }}</span>
                       <span :class="['slip-type-badge', getLatestSlipForUser(user).type]">{{ getLatestSlipForUser(user).type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span>
@@ -327,7 +328,8 @@
           <button type="button" class="slip-modal-close" @click="closeSlipModal">✕</button>
         </div>
         <div class="slip-modal-body">
-          <img v-if="selectedSlip" :src="selectedSlip.imageData" alt="สลิป" class="slip-modal-image" />
+          <img v-if="selectedSlip?.imageData" :src="selectedSlip.imageData" alt="สลิป" class="slip-modal-image" />
+          <div v-else-if="selectedSlip" class="slip-modal-no-image">ไม่พบรูปภาพ</div>
           <div v-if="selectedSlip" class="slip-modal-info">
             <p><strong>ผู้ใช้:</strong> {{ selectedSlip.username }}</p>
             <p><strong>เวลา:</strong> {{ formatDate(selectedSlip.createdAt) }}</p>
@@ -467,11 +469,11 @@ export default {
       isResettingPassword: false,
     };
   },
-  created() {
+  async created() {
     this.currentUserId = getCurrentUser()?.id || null;
-    this.loadUsers();
+    await this.loadUsers();
     this.loadPaymentSettings();
-    this.loadPaymentSlips();
+    await this.loadPaymentSlips();
   },
   computed: {
     refreshButtonText() {
@@ -541,7 +543,8 @@ export default {
       }
 
       this.showAllUsers = false;
-      await Promise.all([this.loadUsers(), this.loadPaymentSlips()]);
+      await this.loadUsers();
+      await this.loadPaymentSlips();
     },
     async loadUsers() {
       this.isLoading = true;
@@ -551,6 +554,10 @@ export default {
         const limit = this.showAllUsers ? null : 20;
         const fetchedUsers = await fetchAdminUsers(limit);
         this.users = fetchedUsers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        // If slips already loaded, load full images for new users
+        if (Object.keys(this.userSlipsByUserId).length > 0) {
+          await this.loadNewUserSlipImages();
+        }
       } catch (err) {
         this.errorMessage = err.message || 'ไม่สามารถโหลดผู้ใช้ได้';
       } finally {
@@ -560,6 +567,7 @@ export default {
     async loadAllUsers() {
       this.showAllUsers = true;
       await this.loadUsers();
+      await this.loadPaymentSlips();
     },
     async loadPaymentSettings() {
       try {
@@ -587,6 +595,11 @@ export default {
           return result;
         }, {});
 
+        // Load full images for new users
+        if (this.users.length > 0) {
+          await this.loadNewUserSlipImages();
+        }
+
         if (this.lastCheckedSlipTimestamp) {
           this.newSlipCount = slips.filter((slip) => new Date(slip.createdAt).getTime() > this.lastCheckedSlipTimestamp).length;
           if (this.newSlipCount > 0) {
@@ -601,6 +614,34 @@ export default {
       } catch (err) {
         this.errorMessage = err.message || 'ไม่สามารถโหลดสลิปการโอนเงินได้';
       }
+    },
+    async loadNewUserSlipImages() {
+      const newUsersWithSlips = this.users.filter(
+        (user) => user.new_user && this.userSlipsByUserId[user.id]
+      );
+
+      if (newUsersWithSlips.length === 0) {
+        return;
+      }
+
+      await Promise.all(
+        newUsersWithSlips.map(async (user) => {
+          const slipMeta = this.userSlipsByUserId[user.id];
+          if (!slipMeta || slipMeta.imageData || this.loadingSlipIds.has(slipMeta.id)) {
+            return;
+          }
+
+          this.loadingSlipIds.add(slipMeta.id);
+          try {
+            const fullSlip = await fetchAdminPaymentSlipById(slipMeta.id);
+            this.userSlipsByUserId[user.id] = fullSlip;
+          } catch (err) {
+            console.error('Failed to load new user slip:', err);
+          } finally {
+            this.loadingSlipIds.delete(slipMeta.id);
+          }
+        })
+      );
     },
     async handlePaymentImageChange(event, field) {
       const file = event.target.files?.[0];
@@ -1234,6 +1275,18 @@ h2 {
   flex-wrap: wrap;
 }
 
+.user-slip-loading {
+  width: 150px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
 .slip-date-link {
   color: #2563eb;
   text-decoration: underline;
@@ -1516,6 +1569,16 @@ h2 {
   object-fit: contain;
   border-radius: 8px;
   background-color: white;
+}
+
+.slip-modal-no-image {
+  width: 100%;
+  padding: 3rem 2rem;
+  text-align: center;
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 1rem;
 }
 
 .slip-modal-info {
