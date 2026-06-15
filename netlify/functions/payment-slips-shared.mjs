@@ -112,3 +112,46 @@ export async function listPaymentSlips() {
 
   return sanitizedSlips;
 }
+
+function sanitizeSlipMeta(slip) {
+  if (!slip) {
+    return null;
+  }
+  return {
+    id: String(slip.id || ''),
+    userId: typeof slip.userId === 'string' ? slip.userId : '',
+    username: typeof slip.username === 'string' ? slip.username : '',
+    type: typeof slip.type === 'string' ? slip.type : 'signup',
+    createdAt: typeof slip.createdAt === 'string' ? slip.createdAt : new Date().toISOString(),
+  };
+}
+
+export async function listPaymentSlipsMeta() {
+  const indexedIds = await getSlipIndex();
+
+  if (indexedIds.length > 0) {
+    const slips = await Promise.all(indexedIds.map((id) => getStoreInstance().get(getSlipKey(id), { type: 'json' })));
+    return slips
+      .map((slip) => sanitizeSlipMeta(slip))
+      .filter(Boolean)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  const { blobs } = await getStoreInstance().list({ prefix: PAYMENT_SLIP_KEY_PREFIX });
+  const slips = await Promise.all(blobs.map(({ key }) => getStoreInstance().get(key, { type: 'json' })));
+  const sanitizedSlips = slips
+    .map((slip) => sanitizeSlipMeta(slip))
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  if (sanitizedSlips.length > 0) {
+    await saveSlipIndex(sanitizedSlips.map((slip) => slip.id));
+  }
+
+  return sanitizedSlips;
+}
+
+export async function getPaymentSlipById(id) {
+  const slip = await getStoreInstance().get(getSlipKey(id), { type: 'json' });
+  return sanitizeSlipRecord(slip);
+}

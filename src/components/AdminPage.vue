@@ -178,11 +178,37 @@
               <td>{{ user.username }}</td>
               <td>
                 <div v-if="getLatestSlipForUser(user)" class="user-slip-cell">
-                  <img :src="getLatestSlipForUser(user).imageData" :alt="`สลิปของ ${user.username}`" class="user-slip-image" @click="openSlipModal(getLatestSlipForUser(user))" />
-                  <div class="user-slip-meta">
-                    <span>{{ formatDate(getLatestSlipForUser(user).createdAt) }}</span>
-                    <span :class="['slip-type-badge', getLatestSlipForUser(user).type]">{{ getLatestSlipForUser(user).type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span>
-                  </div>
+                  <!-- New user: show image immediately -->
+                  <template v-if="user.new_user">
+                    <img :src="getLatestSlipForUser(user).imageData || ''" :alt="`สลิปของ ${user.username}`" class="user-slip-image" @click="openSlipModal(getLatestSlipForUser(user))" />
+                    <div class="user-slip-meta">
+                      <span>{{ formatDate(getLatestSlipForUser(user).createdAt) }}</span>
+                      <span :class="['slip-type-badge', getLatestSlipForUser(user).type]">{{ getLatestSlipForUser(user).type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span>
+                    </div>
+                  </template>
+                  <!-- Existing user: show date and button to load image -->
+                  <template v-else>
+                    <div class="user-slip-meta-existing">
+                      <span>อัปโหลด {{ formatDate(getLatestSlipForUser(user).createdAt) }}</span>
+                      <span :class="['slip-type-badge', getLatestSlipForUser(user).type]">{{ getLatestSlipForUser(user).type === 'renewal' ? 'ต่ออายุ' : 'สมัครใหม่' }}</span>
+                      <button
+                        v-if="!getLatestSlipForUser(user).imageData"
+                        type="button"
+                        class="view-slip-button"
+                        :disabled="isSlipLoading(getLatestSlipForUser(user).id)"
+                        @click="loadFullSlip(getLatestSlipForUser(user).id)"
+                      >
+                        {{ isSlipLoading(getLatestSlipForUser(user).id) ? 'กำลังโหลด...' : 'ดูสลิป' }}
+                      </button>
+                      <img
+                        v-else
+                        :src="getLatestSlipForUser(user).imageData"
+                        :alt="`สลิปของ ${user.username}`"
+                        class="user-slip-image"
+                        @click="openSlipModal(getLatestSlipForUser(user))"
+                      />
+                    </div>
+                  </template>
                 </div>
                 <span v-else class="user-slip-empty">ยังไม่มีสลิป</span>
               </td>
@@ -344,7 +370,7 @@
 <script>
 import MainNavbar from './MainNavbar.vue';
 import { adminResetUserPassword, createAdminUser, deleteAdminUser, fetchAdminUsers, getCurrentUser, getUserAccessState, isUserExpired, updateAdminUserAccess } from '@/utils/auth';
-import { fetchAdminPaymentSettings, fetchAdminPaymentSlips, readFileAsDataUrl, updateAdminPaymentSettings } from '@/utils/payment';
+import { fetchAdminPaymentSettings, fetchAdminPaymentSlipById, fetchAdminPaymentSlipsMeta, readFileAsDataUrl, updateAdminPaymentSettings } from '@/utils/payment';
 
 export default {
   name: 'AdminPage',
@@ -380,6 +406,7 @@ export default {
       audioContext: null,
       showSlipModal: false,
       selectedSlip: null,
+      loadingSlipIds: new Set(),
       showResetPasswordModal: false,
       resetPasswordUser: null,
       showNewUsersWithSlipOnly: false,
@@ -494,7 +521,7 @@ export default {
     },
     async loadPaymentSlips() {
       try {
-        const slips = await fetchAdminPaymentSlips();
+        const slips = await fetchAdminPaymentSlipsMeta();
         this.userSlipsByUserId = slips.reduce((result, slip) => {
           if (!slip?.userId) {
             return result;
@@ -715,6 +742,23 @@ export default {
     },
     getLatestSlipForUser(user) {
       return this.userSlipsByUserId[user.id] || null;
+    },
+    async loadFullSlip(slipId) {
+      if (this.loadingSlipIds.has(slipId)) {
+        return;
+      }
+      this.loadingSlipIds.add(slipId);
+      try {
+        const fullSlip = await fetchAdminPaymentSlipById(slipId);
+        this.userSlipsByUserId[fullSlip.userId] = fullSlip;
+      } catch (err) {
+        console.error('Failed to load slip:', err);
+      } finally {
+        this.loadingSlipIds.delete(slipId);
+      }
+    },
+    isSlipLoading(slipId) {
+      return this.loadingSlipIds.has(slipId);
     },
     dismissNotification() {
       this.newSlipCount = 0;
@@ -1077,6 +1121,29 @@ h2 {
 .user-slip-meta {
   color: #4b5563;
   font-size: 0.85rem;
+}
+
+.user-slip-meta-existing {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: #4b5563;
+  font-size: 0.85rem;
+}
+
+.view-slip-button {
+  padding: 0.25rem 0.5rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.view-slip-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .slip-type-badge {

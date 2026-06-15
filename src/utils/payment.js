@@ -102,6 +102,42 @@ export async function fetchAdminPaymentSlips() {
   return data.slips || [];
 }
 
+export async function fetchAdminPaymentSlipsMeta() {
+  const token = getAuthToken();
+  const response = await fetch(`${ADMIN_PAYMENT_SLIPS_API_BASE}?meta=1`, {
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : {},
+  });
+  const data = await readJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(data.error || 'ไม่สามารถโหลดสลิปการโอนเงินได้');
+  }
+
+  return data.slips || [];
+}
+
+export async function fetchAdminPaymentSlipById(slipId) {
+  const token = getAuthToken();
+  const response = await fetch(`${ADMIN_PAYMENT_SLIPS_API_BASE}?id=${encodeURIComponent(slipId)}`, {
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : {},
+  });
+  const data = await readJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(data.error || 'ไม่สามารถโหลดสลิปได้');
+  }
+
+  return data.slip;
+}
+
 export function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
