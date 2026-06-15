@@ -258,8 +258,9 @@ async function requestAdmin(path = '', options = {}) {
   return data;
 }
 
-export async function fetchAdminUsers() {
-  const data = await requestAdmin();
+export async function fetchAdminUsers(limit = null) {
+  const path = limit ? `?limit=${limit}` : '';
+  const data = await requestAdmin(path);
   return data.users || [];
 }
 

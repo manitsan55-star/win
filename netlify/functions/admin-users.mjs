@@ -5,6 +5,7 @@ import {
   errorResponse,
   jsonResponse,
   listUsers,
+  listUsersLatest,
   readJsonBody,
   requireAdmin,
   requireAdminFast,
@@ -16,7 +17,9 @@ export default async (request) => {
   try {
     if (request.method === 'GET') {
       await requireAdminFast(request);
-      const users = await listUsers();
+      const url = new URL(request.url);
+      const limit = url.searchParams.get('limit');
+      const users = limit ? await listUsersLatest(Number(limit)) : await listUsers();
       return jsonResponse({ users: sanitizeUsers(users) });
     }
 

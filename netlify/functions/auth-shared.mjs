@@ -7,8 +7,19 @@ const USER_KEY_PREFIX = 'user:';
 const USER_INDEX_KEY = 'user-index';
 const AVAILABLE_ROLES = ['admin', 'vip', 'user'];
 
+let _usersCache = null;
+let _usersCacheTime = 0;
+const USERS_CACHE_TTL = 30000;
+
+let _seedAdminVerified = false;
+
 function getStoreInstance() {
   return getStore(STORE_NAME);
+}
+
+function invalidateUsersCache() {
+  _usersCache = null;
+  _usersCacheTime = 0;
 }
 
 function delay(milliseconds) {
@@ -248,6 +259,10 @@ async function waitForSessionPersistence(username, sessionId, attempts = 5) {
 }
 
 export async function ensureSeedAdmin() {
+  if (_seedAdminVerified) {
+    return null;
+  }
+
   const credentials = getSeedAdminCredentials();
 
   if (!credentials) {
@@ -260,6 +275,7 @@ export async function ensureSeedAdmin() {
     const passwordMatches = await bcrypt.compare(credentials.password, existingUser.passwordHash);
 
     if (existingUser.role === 'admin' && passwordMatches) {
+      _seedAdminVerified = true;
       return sanitizeUser(existingUser);
     }
 
@@ -275,6 +291,7 @@ export async function ensureSeedAdmin() {
     };
 
     await saveUser(updatedUser);
+    _seedAdminVerified = true;
     return sanitizeUser(updatedUser);
   }
 
@@ -296,6 +313,7 @@ export async function ensureSeedAdmin() {
 
   await addUsernameToIndex(credentials.username);
 
+  _seedAdminVerified = true;
   return sanitizeUser(user);
 }
 
@@ -575,28 +593,40 @@ export async function requireAdminFast(request) {
 export async function listUsers() {
   await ensureSeedAdmin();
 
+  const now = Date.now();
+  if (_usersCache && (now - _usersCacheTime) < USERS_CACHE_TTL) {
+    return _usersCache;
+  }
+
   const indexedUsernames = await getUserIndex();
 
+  let hydratedUsers;
   if (indexedUsernames.length > 0) {
     const users = await Promise.all(
       indexedUsernames.map((username) => getStoreInstance().get(getUserKey(username), { type: 'json' }))
     );
+    hydratedUsers = users.filter(Boolean);
+  } else {
+    const { blobs } = await getStoreInstance().list({ prefix: USER_KEY_PREFIX });
+    const users = await Promise.all(
+      blobs.map(({ key }) => getStoreInstance().get(key, { type: 'json' }))
+    );
+    hydratedUsers = users.filter(Boolean);
 
-    return users.filter(Boolean);
+    if (hydratedUsers.length > 0) {
+      await saveUserIndex(hydratedUsers.map((user) => user.username));
+    }
   }
 
-  const { blobs } = await getStoreInstance().list({ prefix: USER_KEY_PREFIX });
-  const users = await Promise.all(
-    blobs.map(({ key }) => getStoreInstance().get(key, { type: 'json' }))
-  );
-
-  const hydratedUsers = users.filter(Boolean);
-
-  if (hydratedUsers.length > 0) {
-    await saveUserIndex(hydratedUsers.map((user) => user.username));
-  }
-
+  _usersCache = hydratedUsers;
+  _usersCacheTime = now;
   return hydratedUsers;
+}
+
+export async function listUsersLatest(limit = 20) {
+  const allUsers = await listUsers();
+  const sorted = sanitizeUsers(allUsers);
+  return sorted.slice(0, limit);
 }
 
 async function findUserById(id) {
@@ -608,6 +638,7 @@ async function saveUser(user) {
   const normalizedUser = hydrateUser(user);
   await getStoreInstance().setJSON(getUserKey(normalizedUser.username), normalizedUser);
   await addUsernameToIndex(normalizedUser.username);
+  invalidateUsersCache();
   return normalizedUser;
 }
 
@@ -687,6 +718,7 @@ export async function deleteUserById({ userId, actorId }) {
 
   await getStoreInstance().delete(getUserKey(user.username));
   await removeUsernameFromIndex(user.username);
+  invalidateUsersCache();
 }
 
 export async function changePassword({ userId, currentPassword, newPassword }) {

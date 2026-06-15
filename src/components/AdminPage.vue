@@ -21,6 +21,13 @@
         </button>
       </div>
 
+      <div v-if="activeTab === 'users' && !showAllUsers" class="load-all-row">
+        <span class="load-all-hint">แสดง {{ users.length }} คนล่าสุด</span>
+        <button @click="loadAllUsers" class="load-all-button" :disabled="isLoading">
+          {{ isLoading ? 'กำลังโหลด...' : 'โหลดทั้งหมด' }}
+        </button>
+      </div>
+
       <div class="tabs-row">
         <button
           type="button"
@@ -381,6 +388,7 @@ export default {
       searchQuery: '',
       currentPage: 1,
       itemsPerPage: 10,
+      showAllUsers: false,
       resetPasswordForm: {
         newPassword: '',
         confirmNewPassword: '',
@@ -463,13 +471,18 @@ export default {
       this.errorMessage = '';
 
       try {
-        const fetchedUsers = await fetchAdminUsers();
+        const limit = this.showAllUsers ? null : 20;
+        const fetchedUsers = await fetchAdminUsers(limit);
         this.users = fetchedUsers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       } catch (err) {
         this.errorMessage = err.message || 'ไม่สามารถโหลดผู้ใช้ได้';
       } finally {
         this.isLoading = false;
       }
+    },
+    async loadAllUsers() {
+      this.showAllUsers = true;
+      await this.loadUsers();
     },
     async loadPaymentSettings() {
       try {
@@ -932,6 +945,32 @@ h2 {
   padding: 0.75rem 1rem;
   border-radius: 6px;
   cursor: pointer;
+}
+
+.load-all-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: #f0f9ff;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.load-all-hint {
+  color: #475569;
+  font-size: 0.875rem;
+}
+
+.load-all-button {
+  border: 1px solid #2563eb;
+  background-color: white;
+  color: #2563eb;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
 }
 
 .create-user-card {
@@ -1654,6 +1693,7 @@ th {
 
 .delete-button:disabled,
 .refresh-button:disabled,
+.load-all-button:disabled,
 .create-button:disabled,
 .form-input:disabled,
 .payment-message-input:disabled,
