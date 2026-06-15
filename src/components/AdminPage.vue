@@ -163,6 +163,10 @@
           <input v-model="showUnviewedSlipsOnly" type="checkbox" />
           <span>ยังไม่ได้ดูสลิป (ใหม่/ต่ออายุ)</span>
         </label>
+        <label class="filter-toggle">
+          <input v-model="sortBySlipDate" type="checkbox" />
+          <span>เรียงตาม slip ล่าสุด</span>
+        </label>
         <table>
           <thead>
             <tr>
@@ -456,6 +460,7 @@ export default {
       showUsersWithSlipOnly: false,
       showRenewalUsersWithSlipOnly: false,
       showUnviewedSlipsOnly: false,
+      sortBySlipDate: false,
       viewedSlipIds: new Set(),
       searchQuery: '',
       currentPage: 1,
@@ -488,7 +493,18 @@ export default {
     },
     filteredUsers() {
       let result = [...this.users];
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      if (this.sortBySlipDate) {
+        result.sort((a, b) => {
+          const slipA = this.getLatestSlipForUser(a);
+          const slipB = this.getLatestSlipForUser(b);
+          const timeA = slipA ? new Date(slipA.createdAt).getTime() : 0;
+          const timeB = slipB ? new Date(slipB.createdAt).getTime() : 0;
+          return timeB - timeA;
+        });
+      } else {
+        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }
       if (this.searchQuery) {
         const q = this.searchQuery.toLowerCase();
         result = result.filter((user) => user.username.toLowerCase().includes(q));
