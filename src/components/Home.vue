@@ -1108,6 +1108,11 @@ export default {
       this.showAuthModal = false;
       this.syncAccessNotice();
 
+      const user = getCurrentUser();
+      if (user && user.new_user) {
+        this.showPaymentModal = true;
+      }
+
       if (this.pendingCalculation) {
         this.pendingCalculation = false;
         await this.submitData();
