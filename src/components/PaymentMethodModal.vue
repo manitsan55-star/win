@@ -39,6 +39,7 @@
 </template>
 
 <script>
+import { restoreSession } from '@/utils/auth';
 import { readFileAsDataUrl, uploadPaymentSlip } from '@/utils/payment';
 
 export default {
@@ -103,6 +104,7 @@ export default {
       this.successMessage = '';
 
       try {
+        await restoreSession();
         await uploadPaymentSlip(this.slipPreview);
         this.successMessage = 'ส่งสลิปให้แอดมินแล้ว';
         this.slipPreview = '';

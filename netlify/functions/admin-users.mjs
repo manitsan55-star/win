@@ -7,18 +7,20 @@ import {
   listUsers,
   readJsonBody,
   requireAdmin,
+  requireAdminFast,
   sanitizeUsers,
   updateUserAccess,
 } from './auth-shared.mjs';
 
 export default async (request) => {
   try {
-    const admin = await requireAdmin(request);
-
     if (request.method === 'GET') {
+      await requireAdminFast(request);
       const users = await listUsers();
       return jsonResponse({ users: sanitizeUsers(users) });
     }
+
+    const admin = await requireAdmin(request);
 
     if (request.method === 'POST') {
       const body = await readJsonBody(request);

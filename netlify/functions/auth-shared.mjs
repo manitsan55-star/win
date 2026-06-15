@@ -542,6 +542,36 @@ export async function requireAdmin(request) {
   return user;
 }
 
+export async function requireAdminFast(request) {
+  await ensureSeedAdmin();
+
+  const authorization = request.headers.get('authorization');
+
+  if (!authorization || !authorization.startsWith('Bearer ')) {
+    throw new Error('unauthorized');
+  }
+
+  const token = authorization.slice('Bearer '.length);
+  let decoded;
+  try {
+    decoded = jwt.verify(token, getJwtSecret());
+  } catch {
+    throw new Error('unauthorized');
+  }
+
+  const user = await findUserByUsername(decoded.username);
+
+  if (!user) {
+    throw new Error('unauthorized');
+  }
+
+  if (user.role !== 'admin') {
+    throw new Error('forbidden');
+  }
+
+  return sanitizeUser(user);
+}
+
 export async function listUsers() {
   await ensureSeedAdmin();
 
