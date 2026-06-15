@@ -160,10 +160,6 @@
           <span>แสดง user ที่ต่ออายุ</span>
         </label>
         <label class="filter-toggle">
-          <input v-model="showUnviewedSlipsOnly" type="checkbox" />
-          <span>ยังไม่ได้ดูสลิป (ใหม่/ต่ออายุ)</span>
-        </label>
-        <label class="filter-toggle">
           <input v-model="sortBySlipDate" type="checkbox" />
           <span>เรียงตาม slip ล่าสุด</span>
         </label>
@@ -321,7 +317,7 @@
       </div>
 
       <div v-if="activeTab === 'users' && filteredUsers.length === 0" class="empty-state">
-        {{ showNewUsersWithSlipOnly || showUsersWithSlipOnly || showRenewalUsersWithSlipOnly || showUnviewedSlipsOnly ? 'ไม่มี user ที่อัปโหลดสลิปแล้ว' : 'ยังไม่มีผู้ใช้ในระบบ' }}
+        {{ showNewUsersWithSlipOnly || showUsersWithSlipOnly || showRenewalUsersWithSlipOnly ? 'ไม่มี user ที่อัปโหลดสลิปแล้ว' : 'ยังไม่มีผู้ใช้ในระบบ' }}
       </div>
     </div>
 
@@ -459,9 +455,7 @@ export default {
       showNewUsersWithSlipOnly: false,
       showUsersWithSlipOnly: false,
       showRenewalUsersWithSlipOnly: false,
-      showUnviewedSlipsOnly: false,
       sortBySlipDate: false,
-      viewedSlipIds: new Set(),
       searchQuery: '',
       currentPage: 1,
       itemsPerPage: 10,
@@ -519,12 +513,6 @@ export default {
         result = result.filter((user) => {
           const slip = this.getLatestSlipForUser(user);
           return slip && slip.type === 'renewal';
-        });
-      }
-      if (this.showUnviewedSlipsOnly) {
-        result = result.filter((user) => {
-          const slip = this.getLatestSlipForUser(user);
-          return slip && !this.viewedSlipIds.has(slip.id);
         });
       }
       return result;
@@ -867,12 +855,6 @@ export default {
       this.selectedUserForSlips = user;
       this.userAllSlips = this.getAllSlipsForUser(user);
       this.showAllSlipsModal = true;
-      // Mark all slips as viewed
-      this.userAllSlips.forEach((slip) => {
-        if (slip?.id) {
-          this.viewedSlipIds.add(slip.id);
-        }
-      });
     },
     closeAllSlipsModal() {
       this.showAllSlipsModal = false;
@@ -951,10 +933,6 @@ export default {
     openSlipModal(slip) {
       this.selectedSlip = slip;
       this.showSlipModal = true;
-      // Mark slip as viewed when opened
-      if (slip?.id) {
-        this.viewedSlipIds.add(slip.id);
-      }
     },
     closeSlipModal() {
       this.showSlipModal = false;
