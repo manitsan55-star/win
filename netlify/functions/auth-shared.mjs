@@ -528,8 +528,6 @@ export async function requireAdmin(request) {
 }
 
 export async function requireAdminFast(request) {
-  await ensureSeedAdmin();
-
   const authorization = request.headers.get('authorization');
 
   if (!authorization || !authorization.startsWith('Bearer ')) {
