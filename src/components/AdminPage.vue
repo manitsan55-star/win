@@ -475,7 +475,7 @@ export default {
     await this.loadPaymentSlips();
   },
   mounted() {
-    this.setOneSignalAdminTag();
+    this.loadOneSignal();
   },
   computed: {
     refreshButtonText() {
@@ -941,11 +941,23 @@ export default {
       this.showSlipModal = false;
       this.selectedSlip = null;
     },
-    setOneSignalAdminTag() {
-      if (typeof window.OneSignalDeferred === 'undefined') {
+    loadOneSignal() {
+      if (document.getElementById('onesignal-sdk')) {
+        this.initOneSignalAdmin();
         return;
       }
+      const script = document.createElement('script');
+      script.id = 'onesignal-sdk';
+      script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+      script.onload = () => this.initOneSignalAdmin();
+      document.head.appendChild(script);
+    },
+    initOneSignalAdmin() {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: '3cfa6065-d6c2-4a49-b842-6dc840998ec6',
+        });
         await OneSignal.User.addTag('role', 'admin');
       });
     },
