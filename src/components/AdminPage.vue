@@ -474,6 +474,9 @@ export default {
     this.loadPaymentSettings();
     await this.loadPaymentSlips();
   },
+  mounted() {
+    this.setOneSignalAdminTag();
+  },
   computed: {
     refreshButtonText() {
       if (this.activeTab === 'users') {
@@ -937,6 +940,14 @@ export default {
     closeSlipModal() {
       this.showSlipModal = false;
       this.selectedSlip = null;
+    },
+    setOneSignalAdminTag() {
+      if (typeof window.OneSignalDeferred === 'undefined') {
+        return;
+      }
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.User.addTag('role', 'admin');
+      });
     },
     openResetPasswordModal(user) {
       this.resetPasswordUser = user;
