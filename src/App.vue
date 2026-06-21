@@ -9,6 +9,11 @@ import { getAuthToken, restoreSession } from '@/utils/auth';
 
 export default {
   name: 'App',
+  data() {
+    return {
+      isCheckingSession: false,
+    };
+  },
   async created() {
     await this.checkSession();
   },
@@ -22,22 +27,25 @@ export default {
   },
   methods: {
     async checkSession() {
-      if (!getAuthToken()) {
+      if (this.isCheckingSession || !getAuthToken()) {
         return;
       }
 
+      this.isCheckingSession = true;
       try {
         await restoreSession();
       } catch (error) {
         console.error(error);
+      } finally {
+        this.isCheckingSession = false;
       }
     },
-    async handleWindowFocus() {
-      await this.checkSession();
+    handleWindowFocus() {
+      this.checkSession();
     },
-    async handleVisibilityChange() {
+    handleVisibilityChange() {
       if (document.visibilityState === 'visible') {
-        await this.checkSession();
+        this.checkSession();
       }
     },
   }

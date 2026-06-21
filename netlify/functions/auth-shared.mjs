@@ -213,7 +213,7 @@ function assertUserCanAccess(user) {
   }
 }
 
-async function waitForTokenSessionUser(username, sessionId, attempts = 20) {
+async function waitForTokenSessionUser(username, sessionId, attempts = 30) {
   let latestUser = null;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -224,7 +224,7 @@ async function waitForTokenSessionUser(username, sessionId, attempts = 20) {
     }
 
     latestUser = user || latestUser;
-    await delay(200);
+    await delay(250);
   }
 
   return latestUser;
@@ -527,6 +527,13 @@ export async function getUserFromRequest(request) {
   }
 
   if (decoded.sessionId !== user.currentSessionId) {
+    const tokenIssuedAt = (decoded.iat || 0) * 1000;
+    const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+    const userCreatedAt = new Date(user.createdAt || 0).getTime();
+    if (tokenIssuedAt > twoMinutesAgo && userCreatedAt > twoMinutesAgo) {
+      console.log('[Auth] New user token recency grace period, allowing:', decoded.username);
+      return sanitizeUser(user);
+    }
     console.log('[Auth] Session mismatch for user:', decoded.username);
     throw new Error('session_replaced');
   }

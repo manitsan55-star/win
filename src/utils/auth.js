@@ -200,6 +200,15 @@ export function isAdmin() {
   return user?.role === 'admin';
 }
 
+function isNewlyRegisteredUser(user) {
+  if (!user?.new_user || !user?.createdAt) {
+    return false;
+  }
+  const createdAt = new Date(user.createdAt).getTime();
+  const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+  return createdAt > twoMinutesAgo;
+}
+
 export async function restoreSession() {
   const token = getAuthToken();
 
@@ -215,6 +224,24 @@ export async function restoreSession() {
     return data.user;
   } catch (error) {
     if (error.status === 401) {
+      const user = getCurrentUser();
+      if (isNewlyRegisteredUser(user)) {
+        console.log('[Auth] New user 401, retrying after delay...');
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        try {
+          const retryData = await requestAuth('/me', null, token);
+          localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(retryData.user));
+          setAuthNotice('');
+          emitAuthChanged();
+          return retryData.user;
+        } catch (retryError) {
+          if (retryError.status === 401) {
+            setAuthNotice(retryError.message || 'Unauthorized');
+            logoutUser({ preserveNotice: true });
+          }
+          throw retryError;
+        }
+      }
       setAuthNotice(error.message || 'Unauthorized');
       logoutUser({ preserveNotice: true });
     }
