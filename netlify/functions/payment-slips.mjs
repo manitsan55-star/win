@@ -52,7 +52,7 @@ export default async (request) => {
       imageData: body.imageData,
     });
 
-    notifyNewSlip(slip);
+    await notifyNewSlip(slip);
 
     return jsonResponse({ slip }, 201);
   } catch (error) {
