@@ -943,23 +943,30 @@ export default {
     },
     loadOneSignal() {
       if (document.getElementById('onesignal-sdk')) {
-        this.initOneSignalAdmin();
+        console.log('[OneSignal] SDK already loaded');
         return;
       }
+      console.log('[OneSignal] Loading SDK...');
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        console.log('[OneSignal] Deferred callback running');
+        await OneSignal.init({
+          appId: '3cfa6065-d6c2-4a49-b842-6dc840998ec6',
+          serviceWorkerParam: { scope: '/' },
+          serviceWorkerPath: '/OneSignalSDKWorker.js',
+        });
+        console.log('[OneSignal] Init done');
+        await OneSignal.User.addTag('role', 'admin');
+        console.log('[OneSignal] Tag role=admin added');
+        const permission = await OneSignal.Notifications.permissionNative;
+        console.log('[OneSignal] Native permission:', permission);
+      });
       const script = document.createElement('script');
       script.id = 'onesignal-sdk';
       script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
-      script.onload = () => this.initOneSignalAdmin();
+      script.onload = () => console.log('[OneSignal] Script loaded');
+      script.onerror = (e) => console.error('[OneSignal] Script failed to load', e);
       document.head.appendChild(script);
-    },
-    initOneSignalAdmin() {
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: '3cfa6065-d6c2-4a49-b842-6dc840998ec6',
-        });
-        await OneSignal.User.addTag('role', 'admin');
-      });
     },
     openResetPasswordModal(user) {
       this.resetPasswordUser = user;
