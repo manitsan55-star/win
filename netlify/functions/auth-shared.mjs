@@ -213,7 +213,7 @@ function assertUserCanAccess(user) {
   }
 }
 
-async function waitForTokenSessionUser(username, sessionId, attempts = 8) {
+async function waitForTokenSessionUser(username, sessionId, attempts = 20) {
   let latestUser = null;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -224,7 +224,7 @@ async function waitForTokenSessionUser(username, sessionId, attempts = 8) {
     }
 
     latestUser = user || latestUser;
-    await delay(150);
+    await delay(200);
   }
 
   return latestUser;
@@ -498,20 +498,37 @@ export async function getUserFromRequest(request) {
   } catch {
     throw new Error('unauthorized');
   }
+
   const user = await waitForTokenSessionUser(decoded.username, decoded.sessionId);
 
   if (!user) {
+    console.log('[Auth] User not found:', decoded.username);
     throw new Error('unauthorized');
   }
 
-  if (user.role !== 'admin') {
-    if (!decoded.sessionId || !user.currentSessionId) {
-      throw new Error('unauthorized');
-    }
+  if (user.role === 'admin') {
+    return sanitizeUser(user);
+  }
 
-    if (decoded.sessionId !== user.currentSessionId) {
-      throw new Error('session_replaced');
+  if (!decoded.sessionId) {
+    console.log('[Auth] Token missing sessionId for user:', decoded.username);
+    throw new Error('unauthorized');
+  }
+
+  if (!user.currentSessionId) {
+    const createdAt = new Date(user.createdAt || 0).getTime();
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    if (createdAt > fiveMinutesAgo) {
+      console.log('[Auth] New user grace period, allowing:', decoded.username);
+      return sanitizeUser(user);
     }
+    console.log('[Auth] Missing currentSessionId for user:', decoded.username);
+    throw new Error('unauthorized');
+  }
+
+  if (decoded.sessionId !== user.currentSessionId) {
+    console.log('[Auth] Session mismatch for user:', decoded.username);
+    throw new Error('session_replaced');
   }
 
   return sanitizeUser(user);
