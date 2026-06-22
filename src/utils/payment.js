@@ -9,6 +9,25 @@ async function readJsonResponse(response) {
   return response.json().catch(() => ({}));
 }
 
+async function fetchWithRetry(url, options = {}, attempt = 0) {
+  try {
+    const response = await fetch(url, options);
+    // Retry server errors (502/503/504 cold-start), but not auth/client errors.
+    if (response.status >= 500 && attempt < 1) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      return fetchWithRetry(url, options, attempt + 1);
+    }
+    return response;
+  } catch (networkError) {
+    // Transient network failure (often a cold-start). Retry once.
+    if (attempt < 1) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      return fetchWithRetry(url, options, attempt + 1);
+    }
+    throw networkError;
+  }
+}
+
 export async function fetchPaymentSettings() {
   const response = await fetch(PAYMENT_API_BASE);
   const data = await readJsonResponse(response);
@@ -22,7 +41,7 @@ export async function fetchPaymentSettings() {
 
 export async function fetchAdminPaymentSettings() {
   const token = getAuthToken();
-  const response = await fetch(ADMIN_PAYMENT_API_BASE, {
+  const response = await fetchWithRetry(ADMIN_PAYMENT_API_BASE, {
     headers: token
       ? {
           Authorization: `Bearer ${token}`,
@@ -104,7 +123,7 @@ export async function fetchAdminPaymentSlips() {
 
 export async function fetchAdminPaymentSlipsMeta() {
   const token = getAuthToken();
-  const response = await fetch(`${ADMIN_PAYMENT_SLIPS_API_BASE}?meta=1`, {
+  const response = await fetchWithRetry(`${ADMIN_PAYMENT_SLIPS_API_BASE}?meta=1`, {
     headers: token
       ? {
           Authorization: `Bearer ${token}`,
@@ -122,7 +141,7 @@ export async function fetchAdminPaymentSlipsMeta() {
 
 export async function fetchAdminPaymentSlipById(slipId) {
   const token = getAuthToken();
-  const response = await fetch(`${ADMIN_PAYMENT_SLIPS_API_BASE}?id=${encodeURIComponent(slipId)}`, {
+  const response = await fetchWithRetry(`${ADMIN_PAYMENT_SLIPS_API_BASE}?id=${encodeURIComponent(slipId)}`, {
     headers: token
       ? {
           Authorization: `Bearer ${token}`,

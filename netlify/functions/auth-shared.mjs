@@ -512,6 +512,15 @@ export async function getUserFromRequest(request) {
   }
 
   const tokenIssuedMs = (decoded.iat || 0) * 1000;
+
+  // Admins don't use single-session tracking, so skip the session wait loop
+  // entirely to avoid a multi-second delay on every admin request.
+  const initialUser = await findUserByUsername(decoded.username);
+
+  if (initialUser?.role === 'admin') {
+    return sanitizeUser(initialUser);
+  }
+
   const user = await waitForTokenSessionUser(decoded.username, decoded.sessionId, tokenIssuedMs);
 
   if (!user) {

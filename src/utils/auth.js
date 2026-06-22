@@ -260,7 +260,7 @@ export function logoutUser(options = {}) {
   emitAuthChanged({ reason: options.reason || null });
 }
 
-async function requestAdmin(path = '', options = {}) {
+async function requestAdmin(path = '', options = {}, attempt = 0) {
   const token = getAuthToken();
   const headers = {
     'Content-Type': 'application/json',
@@ -271,14 +271,29 @@ async function requestAdmin(path = '', options = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`/api/admin/users${path}`, {
-    ...options,
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(`/api/admin/users${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (networkError) {
+    // Transient network failure (often a cold-start). Retry once.
+    if (attempt < 1) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      return requestAdmin(path, options, attempt + 1);
+    }
+    throw networkError;
+  }
 
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    // Retry server errors (502/503/504 cold-start), but not auth/client errors.
+    if (response.status >= 500 && attempt < 1) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      return requestAdmin(path, options, attempt + 1);
+    }
     throw new Error(data.error || 'Admin request failed');
   }
 
