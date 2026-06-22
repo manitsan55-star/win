@@ -223,6 +223,11 @@ async function waitForTokenSessionUser(username, sessionId, attempts = 30) {
       return user;
     }
 
+    // Session was replaced: user exists with a different non-null sessionId
+    if (user && user.currentSessionId && sessionId) {
+      return user;
+    }
+
     latestUser = user || latestUser;
     await delay(250);
   }
