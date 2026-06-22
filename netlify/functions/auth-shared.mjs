@@ -213,13 +213,24 @@ function assertUserCanAccess(user) {
   }
 }
 
-async function waitForTokenSessionUser(username, sessionId, attempts = 20) {
+async function waitForTokenSessionUser(username, sessionId, tokenIssuedMs = 0, attempts = 20) {
   let latestUser = null;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const user = await findUserByUsername(username);
 
     if (user?.currentSessionId === sessionId) {
+      return user;
+    }
+
+    // Stored session is clearly newer than this token => session was replaced.
+    // Stop waiting so the old device is logged out promptly.
+    if (
+      user &&
+      user.sessionCreatedAt &&
+      tokenIssuedMs &&
+      user.sessionCreatedAt > tokenIssuedMs + 1000
+    ) {
       return user;
     }
 
@@ -430,6 +441,7 @@ async function startUserSession(user) {
     : {
         ...user,
         currentSessionId: createSessionId(),
+        sessionCreatedAt: Date.now(),
       };
 
   if (!isAdmin) {
@@ -499,7 +511,8 @@ export async function getUserFromRequest(request) {
     throw new Error('unauthorized');
   }
 
-  const user = await waitForTokenSessionUser(decoded.username, decoded.sessionId);
+  const tokenIssuedMs = (decoded.iat || 0) * 1000;
+  const user = await waitForTokenSessionUser(decoded.username, decoded.sessionId, tokenIssuedMs);
 
   if (!user) {
     console.log('[Auth] User not found:', decoded.username);
@@ -527,14 +540,14 @@ export async function getUserFromRequest(request) {
   }
 
   if (decoded.sessionId !== user.currentSessionId) {
-    const tokenIssuedAt = (decoded.iat || 0) * 1000;
-    const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
-    const userCreatedAt = new Date(user.createdAt || 0).getTime();
-    if (tokenIssuedAt > twoMinutesAgo && userCreatedAt > twoMinutesAgo) {
-      console.log('[Auth] New user token recency grace period, allowing:', decoded.username);
+    const sessionCreatedAt = user.sessionCreatedAt || 0;
+    // If this token was issued at-or-after the stored session, the stored copy
+    // is just lagging behind (eventual consistency) for THIS device. Allow it.
+    if (sessionCreatedAt && tokenIssuedMs + 1000 >= sessionCreatedAt) {
+      console.log('[Auth] Session propagation lag, allowing:', decoded.username);
       return sanitizeUser(user);
     }
-    console.log('[Auth] Session mismatch for user:', decoded.username);
+    console.log('[Auth] Session replaced for user:', decoded.username);
     throw new Error('session_replaced');
   }
 
