@@ -213,7 +213,7 @@ function assertUserCanAccess(user) {
   }
 }
 
-async function waitForTokenSessionUser(username, sessionId, attempts = 30) {
+async function waitForTokenSessionUser(username, sessionId, attempts = 20) {
   let latestUser = null;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -223,13 +223,8 @@ async function waitForTokenSessionUser(username, sessionId, attempts = 30) {
       return user;
     }
 
-    // Session was replaced: user exists with a different non-null sessionId
-    if (user && user.currentSessionId && sessionId) {
-      return user;
-    }
-
     latestUser = user || latestUser;
-    await delay(250);
+    await delay(200);
   }
 
   return latestUser;
